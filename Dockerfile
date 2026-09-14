@@ -39,6 +39,8 @@ COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts/db-migrate.mjs ./scripts/db-migrate.mjs
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/src/database ./src/database
+# fumadocs-mdx reads source.config.ts at `next start` (createMDX plugin)
+COPY --from=builder /app/source.config.ts ./source.config.ts
 
 USER nextjs
 EXPOSE 3000
