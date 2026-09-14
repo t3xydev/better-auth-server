@@ -38,7 +38,7 @@ Railway [Config as Code](https://docs.railway.com/config-as-code) (`railway.toml
 5. Deploy from `main`. Healthcheck is `/api/health` (always **2xx** when the process is up). For DB readiness probes use `/api/health?ready=1`.
 6. Point the public domain at the service (Railway maps the injected `PORT`). Clear leftover dashboard settings from older templates (Railpack build command, healthcheck `/health`, forced port mismatches, app sleeping) — those fight the Dockerfile / IaC settings and fail the deploy.
 
-The Docker runner image must include `source.config.ts` and `.source` — fumadocs-mdx reads them at `next start`.
+The Docker runner image must include `source.config.ts`, a writable `.source` directory, and `docs/framework`. fumadocs-mdx recompiles `source.config.mjs` into `.source` on every `next start`; if that directory is root-owned, the process crashes with permission denied.
 
 ### Dokploy
 

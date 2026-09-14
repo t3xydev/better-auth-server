@@ -56,15 +56,17 @@ COPY --from=builder /app/patches ./patches
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts/db-migrate.mjs ./scripts/db-migrate.mjs
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/src/database ./src/database
-# fumadocs-mdx reads these at \`next start\` (createMDX plugin); .source is
-# generated at image build so the non-root runtime user need not write /app.
-COPY --from=builder /app/source.config.ts ./source.config.ts
-COPY --from=builder /app/.source ./.source
+# fumadocs-mdx createMDX() recompiles source.config.ts into .source and
+# remaps docs/framework on every \`next start\`. Those paths must exist and
+# .source must be writable by the non-root runtime user.
+COPY --from=builder --chown=nextjs:nodejs /app/source.config.ts ./source.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/.source ./.source
+COPY --from=builder --chown=nextjs:nodejs /app/docs/framework ./docs/framework
 
 USER nextjs
 EXPOSE ${port}
