@@ -16,6 +16,7 @@ import { organizationsEnabled } from "@/lib/organizations"
 import posthog from "@/lib/posthog"
 import { billingEnabled } from "@/modules/billing"
 import { billingClient } from "@/modules/billing/client"
+import { segmentsClient } from "@/modules/segments/client"
 
 /** See `docs/framework/typescript-better-invite.mdx` — must match server `invite()` shim. */
 type FixErrorCodes<T> = Omit<T, "$ERROR_CODES"> &
@@ -43,6 +44,7 @@ export const authClient = createAuthClient({
         adminClient(),
         ...(organizationsEnabled ? [organizationClient()] : []),
         ...(billingEnabled ? [billingClient()] : []),
+        segmentsClient(),
         dashClient(),
         sentinelClient({
             autoSolveChallenge: true,

@@ -298,6 +298,68 @@ export const billingEntitlements = pgTable(
   ],
 );
 
+export const segmentRoles = pgTable("segment_roles", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const segmentRoleMembers = pgTable(
+  "segment_role_members",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => segmentRoles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("segmentRoleMembers_userId_roleId_uidx").on(
+      table.userId,
+      table.roleId,
+    ),
+    index("segmentRoleMembers_userId_idx").on(table.userId),
+    index("segmentRoleMembers_roleId_idx").on(table.roleId),
+  ],
+);
+
+export const groups = pgTable("groups", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const groupMembers = pgTable(
+  "group_members",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("groupMembers_userId_groupId_uidx").on(
+      table.userId,
+      table.groupId,
+    ),
+    index("groupMembers_userId_idx").on(table.userId),
+    index("groupMembers_groupId_idx").on(table.groupId),
+  ],
+);
+
 export const jwkss = pgTable("jwkss", {
   id: text("id").primaryKey(),
   publicKey: text("public_key").notNull(),
@@ -546,6 +608,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   billingCustomers: one(billingCustomers),
   billingSubscriptions: many(billingSubscriptions),
   billingEntitlements: many(billingEntitlements),
+  segmentRoleMembers: many(segmentRoleMembers),
+  groupMembers: many(groupMembers),
   oauthClients: many(oauthClients),
   oauthRefreshTokens: many(oauthRefreshTokens),
   oauthAccessTokens: many(oauthAccessTokens),
@@ -666,6 +730,39 @@ export const billingEntitlementsRelations = relations(
     }),
   }),
 );
+
+export const segmentRolesRelations = relations(segmentRoles, ({ many }) => ({
+  segmentRoleMembers: many(segmentRoleMembers),
+}));
+
+export const segmentRoleMembersRelations = relations(
+  segmentRoleMembers,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [segmentRoleMembers.userId],
+      references: [users.id],
+    }),
+    segmentRoles: one(segmentRoles, {
+      fields: [segmentRoleMembers.roleId],
+      references: [segmentRoles.id],
+    }),
+  }),
+);
+
+export const groupsRelations = relations(groups, ({ many }) => ({
+  groupMembers: many(groupMembers),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  users: one(users, {
+    fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+  groups: one(groups, {
+    fields: [groupMembers.groupId],
+    references: [groups.id],
+  }),
+}));
 
 export const oauthClientsRelations = relations(oauthClients, ({ one, many }) => ({
   users: one(users, {

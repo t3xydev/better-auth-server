@@ -71,7 +71,8 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 
 | Feature | Details |
 |---|---|
-| Admin plugin | Roles (`admin` / `user`), ban fields |
+| Admin plugin | Privilege roles (`admin` / `user`), ban fields |
+| Users / roles / groups | Admin UI to list users, set privilege, and assign catalog roles and groups — [guide](/docs/framework/roles-and-groups) |
 | OAuth client panel | Create, edit, configure sign-in and post-logout callbacks, rotate secrets, disable, delete |
 | Better Auth Dash | Infra dashboard plugin (`BETTER_AUTH_API_KEY`) |
 | Sentinel | Bot / challenge protection (client auto-solve enabled) |
@@ -112,6 +113,8 @@ Customize without code changes:
 ## Analytics
 
 Set `NEXT_PUBLIC_POSTHOG_KEY` (and optionally `NEXT_PUBLIC_POSTHOG_HOST`) to enable PostHog pageviews and auth-related event tracking. Omit the key to disable analytics entirely.
+
+Identify sets `privilege_role`, `roles`, and `groups` person properties so PostHog feature flags can target catalog membership. See [roles-and-groups.md](/docs/framework/roles-and-groups).
 
 ## MCP
 

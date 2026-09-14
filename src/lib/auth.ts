@@ -24,6 +24,8 @@ import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
 import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
 import { billing } from "@/modules/billing/plugin"
+import { segmentClaimsForUser } from "@/modules/segments/claims"
+import { segments } from "@/modules/segments/plugin"
 import {
     DCR_DEFAULT_SCOPES,
     PROVIDER_SCOPES,
@@ -230,6 +232,7 @@ export const auth = betterAuth({
         nostr({ disableImplicitSignUp: true }),
         nostrLink(),
         billing(),
+        segments(),
         dash(),
         sentinel(),
         openAPI(),
@@ -263,13 +266,12 @@ export const auth = betterAuth({
                 userinfo: { window: 60, max: 30 }
             },
             customAccessTokenClaims: async ({ user, scopes }) => ({
-                ...(user?.role ? { roles: [user.role] } : {}),
+                ...(await segmentClaimsForUser(user)),
                 ...(await entitlementClaimsForUser(user?.id, scopes))
             }),
-            customIdTokenClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
+            customIdTokenClaims: async ({ user }) => segmentClaimsForUser(user),
             customUserInfoClaims: async ({ user, scopes }) => ({
-                ...(user?.role ? { roles: [user.role] } : {}),
+                ...(await segmentClaimsForUser(user)),
                 ...(await entitlementClaimsForUser(user?.id, scopes))
             }),
             advertisedMetadata: {
@@ -289,6 +291,7 @@ export const auth = betterAuth({
                     "given_name",
                     "family_name",
                     "roles",
+                    "groups",
                     "entitlements",
                     "subscription"
                 ]

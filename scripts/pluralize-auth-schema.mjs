@@ -21,6 +21,10 @@ const snake = [
     ["billing_entitlement", "billing_entitlements"],
     ["billing_subscription", "billing_subscriptions"],
     ["billing_customer", "billing_customers"],
+    ["segment_role_member", "segment_role_members"],
+    ["segment_role", "segment_roles"],
+    ["group_member", "group_members"],
+    ["group", "groups"],
     ["nostr_pubkey", "nostr_pubkeys"],
     ["invite_use", "invite_uses"],
     ["two_factor", "two_factors"],
@@ -56,6 +60,10 @@ const idents = [
     ["billingEntitlement", "billingEntitlements"],
     ["billingSubscription", "billingSubscriptions"],
     ["billingCustomer", "billingCustomers"],
+    ["segmentRoleMember", "segmentRoleMembers"],
+    ["segmentRole", "segmentRoles"],
+    ["groupMember", "groupMembers"],
+    ["group", "groups"],
     ["nostrPubkey", "nostrPubkeys"],
     ["inviteUse", "inviteUses"],
     ["invitation", "invitations"],
@@ -121,7 +129,16 @@ const indexNames = [
     ],
     ["oauthAccessToken_refreshId_idx", "oauthAccessTokens_refreshId_idx"],
     ["oauthConsent_clientId_idx", "oauthConsents_clientId_idx"],
-    ["oauthConsent_userId_idx", "oauthConsents_userId_idx"]
+    ["oauthConsent_userId_idx", "oauthConsents_userId_idx"],
+    [
+        "segmentRoleMember_userId_roleId_uidx",
+        "segmentRoleMembers_userId_roleId_uidx"
+    ],
+    ["segmentRoleMember_userId_idx", "segmentRoleMembers_userId_idx"],
+    ["segmentRoleMember_roleId_idx", "segmentRoleMembers_roleId_idx"],
+    ["groupMember_userId_groupId_uidx", "groupMembers_userId_groupId_uidx"],
+    ["groupMember_userId_idx", "groupMembers_userId_idx"],
+    ["groupMember_groupId_idx", "groupMembers_groupId_idx"]
 ]
 
 for (const [oldName, newName] of indexNames) {
@@ -142,6 +159,10 @@ const relationExports = [
     ["billingCustomerRelations", "billingCustomersRelations"],
     ["billingSubscriptionRelations", "billingSubscriptionsRelations"],
     ["billingEntitlementRelations", "billingEntitlementsRelations"],
+    ["segmentRoleRelations", "segmentRolesRelations"],
+    ["segmentRoleMemberRelations", "segmentRoleMembersRelations"],
+    ["groupRelations", "groupsRelations"],
+    ["groupMemberRelations", "groupMembersRelations"],
     ["nostrPubkeyRelations", "nostrPubkeysRelations"],
     ["oauthClientRelations", "oauthClientsRelations"],
     ["oauthResourceRelations", "oauthResourcesRelations"],

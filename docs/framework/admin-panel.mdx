@@ -1,11 +1,11 @@
 ---
 title: "Admin panel"
-description: "Create and manage OAuth / OIDC clients."
+description: "Manage OAuth clients, users, roles, groups, and invites."
 ---
 
-> Part of the [docs index](/docs/framework). Related: [features](/docs/framework/features) · [environment variables](/docs/framework/environment-variables).
+> Part of the [docs index](/docs/framework). Related: [features](/docs/framework/features) · [environment variables](/docs/framework/environment-variables) · [roles and groups](/docs/framework/roles-and-groups) · [invitations](/docs/framework/invitations).
 
-The admin panel lets administrators register, configure, and manage OAuth clients (internal applications) that authenticate against this auth server.
+The admin panel lets administrators register OAuth clients, manage users, assign catalog roles and groups, and send invites.
 
 ## Setup
 
@@ -33,7 +33,10 @@ Once promoted, a gear icon appears in the header. Click it or navigate directly 
 
 Non-admin users are redirected away automatically.
 
-Also available: **Invites** at `/admin/invites` — see [invitations.md](/docs/framework/invitations).
+Also available:
+
+- **Users** at `/admin/users` — privilege plus catalog roles and groups ([roles-and-groups.md](/docs/framework/roles-and-groups))
+- **Invites** at `/admin/invites` — see [invitations.md](/docs/framework/invitations)
 
 ---
 
@@ -94,7 +97,7 @@ The admin panel is protected at two levels:
 
 1. **Middleware** (`src/middleware.ts`) -- unauthenticated requests to `/admin/*` are redirected to `/auth/sign-in`.
 2. **Layout guard** (`src/app/admin/layout.tsx`) -- authenticated users without the `admin` role are redirected to `/`.
-3. **Server actions** (`src/lib/actions/admin-clients.ts`) -- every action independently verifies `session.user.role === "admin"` before executing.
+3. **Server actions** (`src/lib/actions/admin-*.ts`) -- every action independently verifies `session.user.role === "admin"` before executing.
 
 ---
 
@@ -105,17 +108,21 @@ src/
 ├── app/admin/
 │   ├── layout.tsx              # Admin shell with session/role guard
 │   ├── page.tsx                # Redirects to /admin/clients
-│   └── clients/
-│       ├── page.tsx            # Client list (server component)
-│       └── [id]/
-│           └── page.tsx        # Client detail/edit (server component)
+│   ├── clients/                # OAuth client list + detail
+│   ├── users/                  # User list + privilege / catalog assignment
+│   ├── roles/                  # Catalog roles
+│   ├── groups/                 # Groups
+│   └── invites/                # Invites
 ├── components/admin/
-│   ├── client-table.tsx        # Table with row actions
-│   ├── client-form.tsx         # Edit form with grouped fields
-│   ├── create-client-dialog.tsx# Create dialog + secret reveal
-│   └── redirect-uri-input.tsx  # Multi-value URI input
+│   ├── client-table.tsx
+│   ├── catalog-table.tsx       # Roles and groups CRUD
+│   ├── user-table.tsx
+│   └── user-segment-form.tsx
 └── lib/actions/
-    └── admin-clients.ts        # Server actions (CRUD + rotate + toggle)
+    ├── admin-clients.ts
+    ├── admin-users.ts
+    ├── admin-segments.ts
+    └── admin-invites.ts
 ```
 
 ### Server actions
