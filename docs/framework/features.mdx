@@ -5,14 +5,14 @@ description: "What ships out of the box."
 
 Everything wired into this starter so you can deploy an auth **server**, not just a login form.
 
-Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth.ts) and [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth-client.ts).
+Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth.ts) and [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth-client.ts).
 
 ## Authentication methods
 
 | Method | Plugin / config | Notes |
 |---|---|---|
 | Email code | `emailOTP` | Preferred passwordless sign-in at `/auth/sign-in`; password remains available at `/auth/password`. Codes expire after five minutes, are stored hashed, and cannot create unknown accounts |
-| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/email.ts) |
+| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts) |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking (`/account/nostr`) |

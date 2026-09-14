@@ -15,7 +15,7 @@ export function baseOptions(): BaseLayoutProps {
             },
             {
                 text: "GitHub",
-                url: "https://github.com/t3xydev/better-auth-starterkit",
+                url: "https://github.com/t3xydev/better-auth-server",
                 external: true
             }
         ]

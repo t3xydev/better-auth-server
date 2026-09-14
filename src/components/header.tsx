@@ -59,7 +59,7 @@ export async function Header() {
 
                 {showGithub && (
                     <Link
-                        href="https://github.com/t3xydev/better-auth-starterkit"
+                        href="https://github.com/t3xydev/better-auth-server"
                         target="_blank"
                     >
                         <Button

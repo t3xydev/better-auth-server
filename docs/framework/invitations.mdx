@@ -11,13 +11,13 @@ This starter uses the community [better-invite](https://www.better-invite.com/) 
 
 | Piece | Location |
 |---|---|
-| Server plugin | `invite()` in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth.ts) |
-| Client plugin | `inviteClient()` in [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth-client.ts) |
-| Invite-only flag | `NEXT_PUBLIC_INVITE_ONLY` via [`src/lib/invite-only.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/invite-only.ts) |
+| Server plugin | `invite()` in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth.ts) |
+| Client plugin | `inviteClient()` in [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth-client.ts) |
+| Invite-only flag | `NEXT_PUBLIC_INVITE_ONLY` via [`src/lib/invite-only.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/invite-only.ts) |
 | Schema | `invites` / `invite_uses` in `auth-schema.ts` |
-| Admin UI | [`/admin/invites`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/app/admin/invites/page.tsx) |
-| Welcome / accept UI | [`/invite/activate/[token]`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/app/invite/activate/[token]/page.tsx) |
-| After accept | [`/auth/invited`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/app/auth/invited/page.tsx) |
+| Admin UI | [`/admin/invites`](https://github.com/t3xydev/better-auth-server/blob/main/src/app/admin/invites/page.tsx) |
+| Welcome / accept UI | [`/invite/activate/[token]`](https://github.com/t3xydev/better-auth-server/blob/main/src/app/invite/activate/[token]/page.tsx) |
+| After accept | [`/auth/invited`](https://github.com/t3xydev/better-auth-server/blob/main/src/app/auth/invited/page.tsx) |
 
 ## Behavior
 

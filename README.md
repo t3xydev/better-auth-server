@@ -89,8 +89,8 @@ Full breakdown → [docs/framework/features.mdx](docs/framework/features.mdx) ·
 **1. Clone & install**
 
 ```bash
-git clone https://github.com/t3xydev/better-auth-starterkit.git
-cd better-auth-starterkit
+git clone https://github.com/t3xydev/better-auth-server.git
+cd better-auth-server
 pnpm install
 ```
 
