@@ -107,7 +107,13 @@ curl http://localhost:3000/api/health
 Expected when the DB is up:
 
 ```json
-{ "status": "healthy", "database": "connected", "latency_ms": 2 }
+{ "status": "healthy", "ready": true, "database": "connected", "latency_ms": 2 }
+```
+
+Optional readiness (returns 503 when the DB is down):
+
+```bash
+curl -i "http://localhost:3000/api/health?ready=1"
 ```
 
 ## Scripts reference
