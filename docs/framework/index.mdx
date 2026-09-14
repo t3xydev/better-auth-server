@@ -22,6 +22,7 @@ This kit is a fork of [daveyplate/better-auth-nextjs-starter](https://github.com
 |---|---|
 | [Product](/docs/framework/product) | What this kit is for (accounts-style IdP vs extend template) |
 | [Environment variables](/docs/framework/environment-variables) | Configuring secrets, SMTP, branding, analytics |
+| [Billing](/docs/framework/billing) | Account subscriptions, Stripe webhook, entitlements |
 | [Admin panel](/docs/framework/admin-panel) | Creating and managing OAuth / OIDC clients |
 | [Client trust model](/docs/framework/client-trust-model) | Trust tiers, DCR defaults, scope gating |
 | [Invitations](/docs/framework/invitations) | better-invite setup, activate UI, admin invites |
@@ -33,6 +34,8 @@ This kit is a fork of [daveyplate/better-auth-nextjs-starter](https://github.com
 |---|---|
 | `/auth/sign-in` | Sign-in UI |
 | `/account/*` | Account settings (Better Auth UI) |
+| `/account/billing` | Account subscription (when billing is enabled) |
+| `/pricing` | Public plan catalog (when billing is enabled) |
 | `/admin/clients` | OAuth client admin (admin role required) |
 | `/admin/invites` | Create and manage user invites (admin role required) |
 | `/invite/activate/[token]` | Invite welcome page; accept or reject |

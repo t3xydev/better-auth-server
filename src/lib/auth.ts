@@ -22,6 +22,8 @@ import { db } from "@/database/db"
 import * as schema from "@/database/schema"
 import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
+import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
+import { billing } from "@/modules/billing/plugin"
 import {
     DCR_DEFAULT_SCOPES,
     PROVIDER_SCOPES,
@@ -227,6 +229,7 @@ export const auth = betterAuth({
         }) as unknown as FixErrorCodes<ReturnType<typeof invite>>,
         nostr({ disableImplicitSignUp: true }),
         nostrLink(),
+        billing(),
         dash(),
         sentinel(),
         openAPI(),
@@ -259,12 +262,16 @@ export const auth = betterAuth({
                 introspect: { window: 60, max: 20 },
                 userinfo: { window: 60, max: 30 }
             },
-            customAccessTokenClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
+            customAccessTokenClaims: async ({ user, scopes }) => ({
+                ...(user?.role ? { roles: [user.role] } : {}),
+                ...(await entitlementClaimsForUser(user?.id, scopes))
+            }),
             customIdTokenClaims: async ({ user }) =>
                 user?.role ? { roles: [user.role] } : {},
-            customUserInfoClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
+            customUserInfoClaims: async ({ user, scopes }) => ({
+                ...(user?.role ? { roles: [user.role] } : {}),
+                ...(await entitlementClaimsForUser(user?.id, scopes))
+            }),
             advertisedMetadata: {
                 claims_supported: [
                     "sub",
@@ -281,7 +288,9 @@ export const auth = betterAuth({
                     "picture",
                     "given_name",
                     "family_name",
-                    "roles"
+                    "roles",
+                    "entitlements",
+                    "subscription"
                 ]
             }
         }),

@@ -1,0 +1,104 @@
+---
+title: "Billing"
+description: "Account-scoped subscriptions and entitlements, with Stripe as the first processor."
+---
+
+> Part of the [docs index](/docs/framework). Related: [features](/docs/framework/features) · [environment variables](/docs/framework/environment-variables) · [client trust](/docs/framework/client-trust-model).
+
+This identity host is the billing platform. Users subscribe on **their account here**. Other apps only ask whether the account is entitled — they never talk to the payment processor and never see customer IDs.
+
+Sign-in stays free. A subscription is an add-on, not a login gate.
+
+## Local development
+
+`pnpm dev` shows `/pricing` and `/account/billing` **without** Stripe env vars. The catalog uses placeholder Premium monthly/yearly plans. Subscribe / Manage stay disabled until you set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, and real Price IDs.
+
+Set `NEXT_PUBLIC_BILLING_ENABLED=false` to hide those routes locally. Production still requires `NEXT_PUBLIC_BILLING_ENABLED=true` plus processor secrets — placeholders never ship in a production build.
+
+## Enable
+
+Set `NEXT_PUBLIC_BILLING_ENABLED=true` and configure a processor. The first processor is Stripe.
+
+```bash
+NEXT_PUBLIC_BILLING_ENABLED=true
+BILLING_PROVIDER=stripe
+STRIPE_SECRET_KEY=rk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+BILLING_STRIPE_PRICE_PREMIUM_MONTHLY=price_...
+BILLING_STRIPE_PRICE_PREMIUM_YEARLY=price_...
+# optional first-subscribe trial
+BILLING_TRIAL_DAYS=14
+```
+
+Prefer a [restricted API key](https://docs.stripe.com/keys/restricted-api-keys.md) (`rk_` prefix) over a secret key.
+
+Create **one Product per plan** in the Stripe Dashboard (this starter ships `premium`). Attach monthly and yearly **Prices** to that Product, then paste the Price IDs into env. Adding another plan is catalog + env — not a schema change.
+
+Then run `pnpm db:sync` locally if you have not already applied the billing migrations, and commit the SQL.
+
+## Surfaces
+
+| Path | Who | Purpose |
+|------|-----|---------|
+| `/account/billing` | Signed-in user | Status, subscribe, manage |
+| `/pricing` | Public | Catalog + link to billing |
+| `GET /api/auth/billing/catalog` | Anyone | Publishable plans (no secrets) |
+| `GET /api/auth/billing/subscription` | Session | Current subscription + entitlements |
+| `POST /api/auth/billing/checkout` | Session | Stripe Checkout URL |
+| `POST /api/auth/billing/portal` | Session | Stripe Customer Portal URL |
+| `POST /api/auth/billing/webhook` | Stripe | Canonical subscription sync |
+
+v1 allows **one concurrent active / trialing / past due subscription per user**. Switching payment method or canceling at period end happens in the Customer Portal.
+
+## Webhook
+
+Point a Stripe webhook endpoint at:
+
+```text
+{BETTER_AUTH_URL}/api/auth/billing/webhook
+```
+
+Subscribe at least:
+
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.paid`
+- `invoice.payment_failed`
+
+Use the signing secret as `STRIPE_WEBHOOK_SECRET`. Locally, the Stripe CLI can forward events to `http://localhost:3000/api/auth/billing/webhook`.
+
+## Entitlements for client apps
+
+OAuth / OIDC clients request the public `entitlements` scope. UserInfo and access tokens then include:
+
+```json
+{
+  "entitlements": ["premium"],
+  "subscription": {
+    "status": "active",
+    "product": "premium",
+    "currentPeriodEnd": "2026-10-14T00:00:00.000Z"
+  }
+}
+```
+
+ID tokens stay small (no billing claims). Purchase and portal stay on this host — session cookies only.
+
+Status mapping (payment-retry grace, similar to platform stores):
+
+| Processor status | Entitlement |
+|------------------|-------------|
+| `trialing`, `active` | `active` |
+| `past_due` | `grace` (still entitled) |
+| `canceled` with time remaining | `active` until period end |
+| `unpaid`, ended, expired | `expired` |
+
+## Tax
+
+If you charge customers in the US or EU, enable [Stripe Tax for recurring payments](https://docs.stripe.com/billing/taxes/collect-taxes.md) in the Dashboard **after** you have an active tax registration. This starter does not turn `automatic_tax` on by itself — without a registration Stripe calculates no tax and returns no error.
+
+## Later processors
+
+Subscriptions and entitlements are stored in processor-agnostic tables (`billing_customers`, `billing_subscriptions`, `billing_entitlements`). A future Apple / Google adapter can write the same rows. Organization / seat billing is not in this release.

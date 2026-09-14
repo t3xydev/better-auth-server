@@ -18,6 +18,7 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking (`/account/nostr`) |
 | Invitations | `better-invite` | Admin create/list UI, email + public invites, `/invite/activate/[token]` welcome + accept flow — [guide](/docs/framework/invitations). Opt-in invite-only registration via `NEXT_PUBLIC_INVITE_ONLY=true` |
 | Organizations | `organization` | Opt-in via `NEXT_PUBLIC_ORGANIZATIONS_ENABLED=true`. Members, roles, email invites; UI at `/organization/*` and `/account/organizations` |
+| Billing | Account-scoped catalog + Stripe | Production: `NEXT_PUBLIC_BILLING_ENABLED=true`. `next dev` shows a placeholder catalog unless the flag is `"false"`. Users subscribe on this host; client apps read entitlements — [guide](/docs/framework/billing) |
 
 ### Planned identity methods
 
@@ -29,7 +30,6 @@ Same account model as above — first-class sign-in / link paths for the IdP (se
 | Bitcoin Connect | Planned | BTC wallet connect as auth/link |
 | Lightning | Planned | LN auth / payments-adjacent identity |
 | Ethereum | Planned | Wallet sign-in / linking (e.g. SIWE-style) |
-| Billing | Planned | Account-scoped plans / payments |
 
 ## OAuth 2.1 / OpenID Connect provider
 
@@ -44,7 +44,7 @@ This app can act as an **authorization server** for your other apps — either b
 | Protected resource metadata | `/.well-known/oauth-protected-resource` |
 | Admin UI for clients | `/admin/clients` — [guide](/docs/framework/admin-panel) |
 
-**Default scopes:** `openid`, `profile`, `email`, `offline_access`
+**Default scopes:** `openid`, `profile`, `email`, `entitlements`, `offline_access`
 
 Dynamic client registration is off by default. Set `ALLOW_DYNAMIC_CLIENT_REGISTRATION=true` to enable it for authenticated users. Public unauthenticated registration stays off unless `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION=true`.
 

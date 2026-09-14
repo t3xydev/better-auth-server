@@ -19,7 +19,7 @@ A more **open, federated, and decentralized** identity future:
 - An **authorization server / OpenID Connect provider** you own and deploy.
 - The Next.js app *is* the auth server (UI + API + discovery + admin), not a login bolt-on for a single product.
 - Bridges **web2 auth** (email, passkeys, OIDC) with **decentralized / crypto identity** on one issuer.
-- **Billing** is planned (account-scoped subscriptions / payments).
+- **Billing** is account-scoped (subscriptions and entitlements on this issuer).
 
 ## Two ways to use it
 
@@ -37,6 +37,7 @@ Both are intentional. Prefer designs that work either way: solid issuer / API / 
 - Email & password, passkeys, 2FA, invites, optional organizations
 - OAuth 2.1 / OIDC provider (`@better-auth/oauth-provider`), discovery, consent, admin clients
 - Nostr sign-in + key linking
+- Account-scoped billing (opt-in; Stripe first)
 
 ### Planned
 
@@ -46,7 +47,6 @@ Both are intentional. Prefer designs that work either way: solid issuer / API / 
 | **Bitcoin Connect** | BTC wallet connect as an auth/link method |
 | **Lightning** | Lightning Network auth / payments-adjacent identity |
 | **ETH** | Ethereum wallet sign-in / account linking (e.g. SIWE-style) |
-| **Billing** | Plans and payments scoped to the same account model |
 
 Treat decentralized methods as first-class **sign-in and account-link** paths on the IdP. Protocol-specific OAuth scopes may be reserved for resources — see [client-trust-model.md](/docs/framework/client-trust-model).
 
@@ -65,4 +65,5 @@ Discovery and protocol surfaces are documented in [features.md](/docs/framework/
 - [Features](/docs/framework/features) — what ships today  
 - [Getting started](/docs/framework/getting-started) — local setup  
 - [Deployment](/docs/framework/deployment) — hosts and sync  
+- [Billing](/docs/framework/billing) — account subscriptions and entitlements  
 - [Admin panel](/docs/framework/admin-panel) — OAuth clients  

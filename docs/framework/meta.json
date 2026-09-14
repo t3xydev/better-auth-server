@@ -8,6 +8,7 @@
     "deployment",
     "---",
     "environment-variables",
+    "billing",
     "admin-panel",
     "client-trust-model",
     "invitations",

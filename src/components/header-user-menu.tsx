@@ -6,12 +6,19 @@ import {
     UserButton,
     useCurrentOrganization
 } from "@daveyplate/better-auth-ui"
-import { Building2, Check, PlusCircle, UserRound } from "lucide-react"
+import {
+    Building2,
+    Check,
+    CreditCard,
+    PlusCircle,
+    UserRound
+} from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
 import { organizationsEnabled } from "@/lib/organizations"
+import { billingEnabled } from "@/modules/billing"
 
 type Organization = {
     id: string
@@ -71,7 +78,9 @@ function HeaderUserMenuWithOrganizations() {
                 onClick={() => void setActive(null)}
             >
                 <UserRound className="size-4 shrink-0" />
-                <span className="flex-1 truncate text-left">Personal account</span>
+                <span className="flex-1 truncate text-left">
+                    Personal account
+                </span>
                 {!activeOrganization && <Check className="size-4 shrink-0" />}
             </button>,
             ...organizations.map((organization) => (
@@ -106,21 +115,55 @@ function HeaderUserMenuWithOrganizations() {
                 icon: <Building2 className="size-4" />,
                 signedIn: true,
                 separator: true
-            }
+            },
+            ...(billingEnabled
+                ? [
+                      {
+                          href: "/account/billing",
+                          label: "Billing",
+                          icon: <CreditCard className="size-4" />,
+                          signedIn: true
+                      }
+                  ]
+                : [])
         ]
     }, [session, organizations, activeOrganization, setActive])
 
     return (
         <>
-            <UserButton size="icon" align="end" additionalLinks={additionalLinks} />
-            <CreateOrganizationDialog open={createOpen} onOpenChange={setCreateOpen} />
+            <UserButton
+                size="icon"
+                align="end"
+                additionalLinks={additionalLinks}
+            />
+            <CreateOrganizationDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+            />
         </>
     )
 }
 
 export function HeaderUserMenu() {
     if (!organizationsEnabled) {
-        return <UserButton size="icon" align="end" />
+        return (
+            <UserButton
+                size="icon"
+                align="end"
+                additionalLinks={
+                    billingEnabled
+                        ? [
+                              {
+                                  href: "/account/billing",
+                                  label: "Billing",
+                                  icon: <CreditCard className="size-4" />,
+                                  signedIn: true
+                              }
+                          ]
+                        : undefined
+                }
+            />
+        )
     }
 
     return <HeaderUserMenuWithOrganizations />

@@ -40,9 +40,12 @@ Promotion is an **administrative** operation (`promoteClientTrustTier`). Clients
 | `openid` | Public | unknown |
 | `profile` | Public | unknown |
 | `email` | Public | unknown |
+| `entitlements` | Public | unknown |
 | `offline_access` | Private | verified |
 
 Protocol-specific scopes (Nostr, AT Proto, wallet, MCP tool groups) are reserved for future resources; the evaluation rules below still apply when those scopes are added.
+
+`entitlements` is read-only membership (active plan keys and subscription status). It does **not** allow charging or opening the billing portal. Purchase stays on this host — see [billing](/docs/framework/billing).
 
 ## Dynamic registration (Tier 0)
 

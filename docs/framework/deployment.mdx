@@ -25,7 +25,7 @@ Do not hand-edit generated files (`Dockerfile`, `.dockerignore`, `docker-compose
 
 Shared container behavior: image build runs `pnpm build` only. On start, `pnpm start` applies pending Drizzle migrations and then serves Next.js, so `DATABASE_URL` is required at **runtime**, not image-build time.
 
-Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)).
+Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)). Optional billing vars (`NEXT_PUBLIC_BILLING_ENABLED`, Stripe keys, price IDs) are `preserve()`d on Railway so Dashboard values survive IaC apply — see [billing](/docs/framework/billing).
 
 ### Railway
 

@@ -181,7 +181,14 @@ export default defineRailway(() => {
             APPLICATION_NAME: preserve(),
             BETTER_AUTH_API_KEY: preserve(),
             BETTER_AUTH_IDENTIFY_URL: preserve(),
-            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve()
+            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve(),
+            NEXT_PUBLIC_BILLING_ENABLED: preserve(),
+            BILLING_PROVIDER: preserve(),
+            STRIPE_SECRET_KEY: preserve(),
+            STRIPE_WEBHOOK_SECRET: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_YEARLY: preserve(),
+            BILLING_TRIAL_DAYS: preserve()
         }
     })
 

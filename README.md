@@ -62,11 +62,11 @@ You get Postgres + migrations, OIDC discovery, consent, an admin UI for OAuth cl
 | User invitations | Ready |
 | Organizations (members, roles, invites) | Opt-in (`NEXT_PUBLIC_ORGANIZATIONS_ENABLED`) |
 | Nostr sign-in + key linking | Ready |
+| Billing (account-scoped subscriptions) | Opt-in (`NEXT_PUBLIC_BILLING_ENABLED`) |
 | Bluesky (AT Proto) identity | Planned |
 | Bitcoin Connect | Planned |
 | Lightning | Planned |
 | Ethereum (wallet / SIWE-style) | Planned |
-| Billing (account-scoped) | Planned |
 | Admin role + **OAuth client management UI** | Ready |
 | OpenAPI docs for the auth API | Ready |
 | SMTP email (or console fallback) | Ready |
@@ -170,11 +170,12 @@ Canonical source: [`docs/framework`](docs/framework). In-app site at `/docs/fram
 
 | Guide | Description |
 |---|---|
-| [Product](docs/framework/product.mdx) | IdP framing, dual usage modes, planned identity + billing |
+| [Product](docs/framework/product.mdx) | IdP framing, dual usage modes, planned identity |
 | [Getting started](docs/framework/getting-started.mdx) | Local setup walkthrough |
 | [Features](docs/framework/features.mdx) | Plugins, endpoints, and what ships out of the box |
 | [Deployment](docs/framework/deployment.mdx) | Railway / Dokploy / Cloudflare sync + classic hosts |
 | [Environment variables](docs/framework/environment-variables.mdx) | Full env reference |
+| [Billing](docs/framework/billing.mdx) | Account subscriptions and entitlements |
 | [Admin panel](docs/framework/admin-panel.mdx) | Manage OAuth clients |
 | [Docs index](docs/framework/index.mdx) | Everything in one place |
 
@@ -183,8 +184,7 @@ Canonical source: [`docs/framework`](docs/framework). In-app site at `/docs/fram
 Planned on the same account / IdP model (works in both usage modes):
 
 - Bluesky (AT Proto) sign-in + linking  
-- Bitcoin Connect, Lightning, and Ethereum wallet identity  
-- Billing (subscriptions / payments scoped to the account)
+- Bitcoin Connect, Lightning, and Ethereum wallet identity
 
 Ideas and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/framework/product.mdx](docs/framework/product.mdx).
 ## Credits

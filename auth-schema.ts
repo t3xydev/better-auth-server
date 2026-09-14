@@ -226,6 +226,78 @@ export const nostrPubkeys = pgTable(
   (table) => [index("nostrPubkeys_userId_idx").on(table.userId)],
 );
 
+export const billingCustomers = pgTable(
+  "billing_customers",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerCustomerId: text("provider_customer_id").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingCustomer_provider_providerCustomerId_uidx").on(
+      table.provider,
+      table.providerCustomerId,
+    ),
+  ],
+);
+
+export const billingSubscriptions = pgTable(
+  "billing_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerSubscriptionId: text("provider_subscription_id").notNull(),
+    productKey: text("product_key").notNull(),
+    priceKey: text("price_key").notNull(),
+    status: text("status").notNull(),
+    currentPeriodStart: timestamp("current_period_start"),
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end"),
+    canceledAt: timestamp("canceled_at"),
+    endedAt: timestamp("ended_at"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingSubscription_provider_providerSubscriptionId_uidx").on(
+      table.provider,
+      table.providerSubscriptionId,
+    ),
+    index("billingSubscription_userId_idx").on(table.userId),
+  ],
+);
+
+export const billingEntitlements = pgTable(
+  "billing_entitlements",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    status: text("status").notNull(),
+    expiresAt: timestamp("expires_at"),
+    sourceSubscriptionId: text("source_subscription_id"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingEntitlement_userId_key_uidx").on(
+      table.userId,
+      table.key,
+    ),
+  ],
+);
+
 export const jwkss = pgTable("jwkss", {
   id: text("id").primaryKey(),
   publicKey: text("public_key").notNull(),
@@ -471,6 +543,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   invites: many(invites),
   inviteUses: many(inviteUses),
   nostrPubkeys: many(nostrPubkeys),
+  billingCustomers: one(billingCustomers),
+  billingSubscriptions: many(billingSubscriptions),
+  billingEntitlements: many(billingEntitlements),
   oauthClients: many(oauthClients),
   oauthRefreshTokens: many(oauthRefreshTokens),
   oauthAccessTokens: many(oauthAccessTokens),
@@ -561,6 +636,36 @@ export const nostrPubkeysRelations = relations(nostrPubkeys, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const billingCustomersRelations = relations(
+  billingCustomers,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingCustomers.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const billingSubscriptionsRelations = relations(
+  billingSubscriptions,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingSubscriptions.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const billingEntitlementsRelations = relations(
+  billingEntitlements,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingEntitlements.userId],
+      references: [users.id],
+    }),
+  }),
+);
 
 export const oauthClientsRelations = relations(oauthClients, ({ one, many }) => ({
   users: one(users, {
