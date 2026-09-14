@@ -43,8 +43,9 @@ Do **not** revive `railway.toml` / `railway.json` — Railway Config as Code is 
 ## Railway notes
 
 - Healthcheck path must return **2xx** for deploy success. `/api/health` is liveness (always 2xx when the process is up); use `/api/health?ready=1` for DB readiness.
-- Set `PORT` to match the app listen port (default `3000`) so Railway probes the right port.
+- Do **not** set a custom `PORT` — Railway injects it for healthchecks and public networking. The Dockerfile default (`3000`) is only for non-Railway hosts.
 - After syncing IaC, run `railway config plan` / `apply`. Clear any leftover dashboard overrides (wrong health path, Railpack build command, sleep mode).
+- Runtime image must include `source.config.ts` — fumadocs-mdx reads it at `next start`.
 
 ## Cloudflare switch
 

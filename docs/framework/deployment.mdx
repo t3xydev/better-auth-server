@@ -34,9 +34,11 @@ Railway [Config as Code](https://docs.railway.com/config-as-code) (`railway.toml
 1. Install the Railway CLI and `pnpm` dep `railway` (already a devDependency).
 2. Link the project: `railway link`.
 3. Preview / apply canvas + service settings: `railway config plan` then `railway config apply`.
-4. Confirm `PORT=3000`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `DATABASE_URL` (IaC wires Postgres/Redis refs; secrets use `preserve()`).
+4. Confirm `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `DATABASE_URL` (IaC wires Postgres/Redis refs; secrets use `preserve()`). Do **not** set a custom `PORT` — Railway injects it for healthchecks and public networking.
 5. Deploy from `main`. Healthcheck is `/api/health` (always **2xx** when the process is up). For DB readiness probes use `/api/health?ready=1`.
-6. Point the public domain at port **3000**. Clear leftover dashboard settings from older templates (Railpack build command, healthcheck `/health`, target port `8080`, app sleeping) — those fight the Dockerfile / IaC settings and fail the deploy.
+6. Point the public domain at the service (Railway maps the injected `PORT`). Clear leftover dashboard settings from older templates (Railpack build command, healthcheck `/health`, forced port mismatches, app sleeping) — those fight the Dockerfile / IaC settings and fail the deploy.
+
+The Docker runner image must include `source.config.ts` — fumadocs-mdx reads it at `next start`.
 
 ### Dokploy
 

@@ -60,7 +60,7 @@ export const deployConfig = {
      */
     railway: {
         /** Canvas / IaC project name */
-        projectName: "BetterAuth StarterKit",
+        projectName: "BetterAuth Server",
         /** App service name on the Railway canvas */
         serviceName: "Better-Auth Server",
         /** GitHub `owner/repo` for the app service source */

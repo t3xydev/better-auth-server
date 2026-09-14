@@ -38,7 +38,7 @@ export default defineRailway(() => {
             }
         },
         env: {
-            PORT: "3000",
+            // Do not set PORT — Railway injects it for healthchecks/public networking.
             DATABASE_URL: db.env.DATABASE_URL,
             REDIS_URL: cache.env.REDIS_URL,
             BETTER_AUTH_SECRET: preserve(),
@@ -52,7 +52,7 @@ export default defineRailway(() => {
 
     const backend = group("Backend", [db, cache, app])
 
-    return project("BetterAuth StarterKit", {
+    return project("BetterAuth Server", {
         resources: [backend]
     })
 })
