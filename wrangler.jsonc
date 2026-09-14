@@ -2,7 +2,7 @@
 // Cloudflare runtime: containers (default)
 {
 	"$schema": "./node_modules/wrangler/config-schema.json",
-	"name": "better-auth-starterkit",
+	"name": "better-auth-server",
 	"main": "deploy/cloudflare/container-worker.ts",
 	"compatibility_date": "2026-07-01",
 	"compatibility_flags": ["nodejs_compat"],

@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 
 export default async function AuthErrorPage({
     searchParams

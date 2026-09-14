@@ -210,8 +210,8 @@ Container-style (Docker):
 
 ```bash
 pnpm deploy:sync
-docker build -t better-auth-starterkit .
-docker run --env-file .env -p 3000:3000 better-auth-starterkit
+docker build -t better-auth-server .
+docker run --env-file .env -p 3000:3000 better-auth-server
 ```
 
 Ensure `.env` includes a valid `DATABASE_URL` pointing at a database you can migrate.

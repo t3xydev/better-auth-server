@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
     subsets: ["latin"]
 })
 
-const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 const primaryHue = process.env.NEXT_PUBLIC_PRIMARY_HUE
 const primaryChroma = process.env.NEXT_PUBLIC_PRIMARY_CHROMA
 const faviconUrl = process.env.FAVICON_URL

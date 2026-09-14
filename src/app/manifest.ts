@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
-    const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+    const appName = process.env.APPLICATION_NAME || "Better Auth Server"
     const iconUrl = process.env.ICON_URL
 
     return {

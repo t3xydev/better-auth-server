@@ -19,7 +19,7 @@ import { auth } from "@/lib/auth"
 import { inviteOnly } from "@/lib/invite-only"
 import { getInviteWelcome } from "@/lib/invite-welcome"
 
-const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 
 export async function generateMetadata({
     params,

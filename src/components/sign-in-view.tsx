@@ -22,7 +22,7 @@ export function SignInView({ appName }: { appName?: string }) {
     const { localization, navigate } = useContext(AuthUIContext)
     const [hasNostr, setHasNostr] = useState(false)
     const [passkeyAvailable, setPasskeyAvailable] = useState(false)
-    const brand = appName || "Better Auth StarterKit"
+    const brand = appName || "Better Auth Server"
 
     useEffect(() => {
         if (typeof window === "undefined") return

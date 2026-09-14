@@ -65,7 +65,7 @@ const trustedOrigins = [
 
 export const auth = betterAuth({
     // baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-    appName: process.env.APPLICATION_NAME || "Better Auth StarterKit",
+    appName: process.env.APPLICATION_NAME || "Better Auth Server",
     trustedOrigins,
     onAPIError: { errorURL: "/auth/error" },
     advanced: {
@@ -147,7 +147,7 @@ export const auth = betterAuth({
         admin(),
         twoFactor(),
         passkey({
-            rpName: process.env.APPLICATION_NAME || "Better Auth StarterKit",
+            rpName: process.env.APPLICATION_NAME || "Better Auth Server",
             origin: authOrigin,
             rpID: new URL(authOrigin).hostname,
             authentication: {
@@ -206,7 +206,7 @@ export const auth = betterAuth({
             },
             async sendUserInvitation({ email, role, url, newAccount }) {
                 const appName =
-                    process.env.APPLICATION_NAME || "Better Auth StarterKit"
+                    process.env.APPLICATION_NAME || "Better Auth Server"
                 void sendEmail({
                     template: "application-invite",
                     to: email,

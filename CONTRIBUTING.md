@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Better Auth StarterKit.
+Thanks for helping improve Better Auth Server.
 
 This repository is a fork of [daveyplate/better-auth-nextjs-starter](https://github.com/daveyplate/better-auth-nextjs-starter). Please keep that attribution and the [t3xy.dev](https://t3xy.dev) credit intact in the README when you contribute.
 

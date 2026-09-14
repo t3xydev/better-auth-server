@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og"
 
-export const alt = "Better Auth StarterKit — deploy a production auth server"
+export const alt = "Better Auth Server — deploy a production auth server"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -16,7 +16,7 @@ export default async function OpenGraphImage() {
         })
     }
 
-    const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+    const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 
     return new ImageResponse(
         (

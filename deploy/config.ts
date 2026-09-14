@@ -16,7 +16,7 @@ export type CloudflareInstanceType =
 
 export const deployConfig = {
     /** Service / image name used across platforms */
-    name: "better-auth-starterkit",
+    name: "better-auth-server",
 
     /** App listen port */
     port: 3000,
@@ -76,7 +76,7 @@ export const deployConfig = {
         domain: "auth.example.com",
 
         /** Traefik router/service name prefix (must be unique on the host) */
-        routerName: "better-auth-starterkit"
+        routerName: "better-auth-server"
     }
 } as const
 
