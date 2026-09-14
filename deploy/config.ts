@@ -21,8 +21,14 @@ export const deployConfig = {
     /** App listen port */
     port: 3000,
 
-    /** Healthcheck path (Next.js route) */
+    /**
+     * Deploy / liveness probe path. Must return 2xx when the process is up
+     * (Railway fails the deploy on non-2xx). Use `?ready=1` for DB readiness.
+     */
     healthcheckPath: "/api/health",
+
+    /** Seconds Railway waits for a 2xx from healthcheckPath */
+    healthcheckTimeout: 300,
 
     /** Image build (no database required) */
     buildCommand: "pnpm build",
@@ -47,6 +53,27 @@ export const deployConfig = {
         "BETTER_AUTH_SECRET",
         "BETTER_AUTH_URL"
     ] as const,
+
+    /**
+     * Railway Infrastructure as Code (`.railway/railway.ts`).
+     * `railway.toml` Config as Code is deprecated (cutoff 2026-12-01).
+     */
+    railway: {
+        /** Canvas / IaC project name */
+        projectName: "BetterAuth StarterKit",
+        /** App service name on the Railway canvas */
+        serviceName: "Better-Auth Server",
+        /** GitHub `owner/repo` for the app service source */
+        githubRepo: "t3xydev/better-auth-server",
+        /** Branch Railway deploys from */
+        branch: "main",
+        /** Postgres service name on the canvas */
+        postgresName: "Postgres",
+        /** Redis service name on the canvas */
+        redisName: "Redis",
+        /** Region for managed DB volumes / replicas */
+        region: "us-east4-eqdc4a"
+    },
 
     cloudflare: {
         /**
