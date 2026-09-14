@@ -1,4 +1,10 @@
 import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider"
 import { auth } from "@/lib/auth"
+import { advertisePublicClientTokenAuth } from "@/lib/oauth-metadata"
 
-export const GET = oauthProviderAuthServerMetadata(auth)
+const getAuthorizationServerMetadata = oauthProviderAuthServerMetadata(auth)
+
+export const GET = async (request: Request) =>
+    advertisePublicClientTokenAuth(
+        await getAuthorizationServerMetadata(request)
+    )

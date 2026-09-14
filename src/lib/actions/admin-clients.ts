@@ -43,6 +43,7 @@ export async function getClient(id: string): Promise<OAuthClientRow | null> {
 export async function createClient(data: {
     name: string
     redirectUris: string[]
+    postLogoutRedirectUris?: string[]
     scopes?: string[]
     skipConsent?: boolean
     enableEndSession?: boolean
@@ -69,6 +70,9 @@ export async function createClient(data: {
         headers: await headers(),
         body: {
             redirect_uris: data.redirectUris,
+            ...(data.postLogoutRedirectUris?.length && {
+                post_logout_redirect_uris: data.postLogoutRedirectUris
+            }),
             client_name: data.name,
             scope: scopes.join(" ") || "openid profile email",
             skip_consent:
@@ -105,6 +109,7 @@ export async function updateClient(
         uri?: string | null
         icon?: string | null
         redirectUris?: string[]
+        postLogoutRedirectUris?: string[] | null
         scopes?: string[] | null
         skipConsent?: boolean | null
         enableEndSession?: boolean | null
@@ -162,6 +167,9 @@ export async function updateClient(
             ...(data.icon !== undefined && { icon: data.icon }),
             ...(data.redirectUris !== undefined && {
                 redirectUris: data.redirectUris
+            }),
+            ...(data.postLogoutRedirectUris !== undefined && {
+                postLogoutRedirectUris: data.postLogoutRedirectUris
             }),
             ...(data.scopes !== undefined && { scopes: data.scopes }),
             ...(data.skipConsent !== undefined && {

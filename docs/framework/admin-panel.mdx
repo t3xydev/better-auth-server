@@ -45,6 +45,7 @@ Also available: **Invites** at `/admin/invites` — see [invitations.md](/docs/f
 2. Fill in the required fields:
    - **Application Name** -- display name shown on consent screens.
    - **Redirect URIs** -- one per line; at least one is required.
+   - **Post-logout redirect URIs** -- optional exact callback allowlist for RP-initiated logout, one per line.
 3. Choose a **trust tier** (defaults to Registered developer). See [client-trust-model.md](/docs/framework/client-trust-model).
 4. Optionally toggle:
    - **Skip consent screen** -- first-party tier only.
@@ -60,10 +61,12 @@ Click a client name in the table to open its detail page. Fields are grouped int
 |---------|--------|
 | **Basic Information** | Name, Application URL, Icon URL |
 | **Behavior** | Trust tier, Skip Consent (first-party only), Enable End Session, Require PKCE, Public Client, Disabled |
-| **OAuth Configuration** | Redirect URIs, Scopes (gated by trust tier), Grant Types (`client_credentials` requires partner+) |
+| **OAuth Configuration** | Redirect URIs, Post-logout Redirect URIs, Scopes (gated by trust tier), Grant Types (`client_credentials` requires partner+) |
 | **Legal & Contact** | Contact Emails, Terms of Service URL, Privacy Policy URL |
 
 Click **Save Changes** to persist edits. Promoting or demoting trust tier is an administrative operation — clients cannot raise their own tier via dynamic registration.
+
+When **Enable End Session** is active, add every exact value an application may send as `post_logout_redirect_uri`. The server redirects only to allowlisted values; web HTTPS URLs and native custom-scheme callbacks are supported. This setting is stored per client as `post_logout_redirect_uris`, so future clients can be configured entirely from the panel without a data migration.
 
 ### Enabling / disabling a client
 

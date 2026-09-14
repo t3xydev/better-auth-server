@@ -1,82 +1,97 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import {
     ArrowLeft,
-    Copy,
     Check,
+    Copy,
     Eye,
     EyeOff,
     RotateCcw,
-    Trash2,
+    Trash2
 } from "lucide-react"
 import Link from "next/link"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
+import { useRouter } from "next/navigation"
+import { useId, useState, useTransition } from "react"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
     CardDescription,
     CardHeader,
-    CardTitle,
+    CardTitle
 } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from "@/components/ui/select"
-import { RedirectUriInput } from "./redirect-uri-input"
+import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
 import {
-    updateClient,
     deleteClient,
     rotateClientSecret,
-    type OAuthClientRow,
+    updateClient,
+    type OAuthClientRow
 } from "@/lib/actions/admin-clients"
-import { isPublicOAuthClient } from "@/lib/oauth-client"
 import {
-    PROVIDER_SCOPES,
-    TRUST_TIERS,
-    TRUST_TIER_LABELS,
     canSkipConsent,
     canUseClientCredentials,
     getTrustTier,
+    PROVIDER_SCOPES,
     scopesAllowedForTier,
-    type TrustTier,
+    TRUST_TIER_LABELS,
+    TRUST_TIERS,
+    type TrustTier
 } from "@/lib/client-trust"
+import { isPublicOAuthClient } from "@/lib/oauth-client"
+import { RedirectUriInput } from "./redirect-uri-input"
 
-const GRANT_TYPES = ["authorization_code", "refresh_token", "client_credentials"] as const
+const GRANT_TYPES = [
+    "authorization_code",
+    "refresh_token",
+    "client_credentials"
+] as const
 
 export function ClientForm({ client }: { client: OAuthClientRow }) {
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
+    const formId = useId()
 
     const [name, setName] = useState(client.name ?? "")
     const [uri, setUri] = useState(client.uri ?? "")
     const [icon, setIcon] = useState(client.icon ?? "")
-    const [redirectUris, setRedirectUris] = useState<string[]>(client.redirectUris ?? [])
+    const [redirectUris, setRedirectUris] = useState<string[]>(
+        client.redirectUris ?? []
+    )
+    const [postLogoutRedirectUris, setPostLogoutRedirectUris] = useState<
+        string[]
+    >(client.postLogoutRedirectUris ?? [])
     const [scopes, setScopes] = useState<string[]>(client.scopes ?? [])
-    const [grantTypes, setGrantTypes] = useState<string[]>(client.grantTypes ?? [])
-    const [trustTier, setTrustTier] = useState<TrustTier>(getTrustTier(client.metadata))
+    const [grantTypes, setGrantTypes] = useState<string[]>(
+        client.grantTypes ?? []
+    )
+    const [trustTier, setTrustTier] = useState<TrustTier>(
+        getTrustTier(client.metadata)
+    )
     const [skipConsent, setSkipConsent] = useState(client.skipConsent ?? false)
-    const [enableEndSession, setEnableEndSession] = useState(client.enableEndSession ?? false)
+    const [enableEndSession, setEnableEndSession] = useState(
+        client.enableEndSession ?? false
+    )
     const [requirePKCE, setRequirePKCE] = useState(client.requirePKCE ?? true)
     const [isPublic, setIsPublic] = useState(isPublicOAuthClient(client))
     const [disabled, setDisabled] = useState(client.disabled ?? false)
@@ -102,14 +117,16 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
 
     function toggleScope(scope: string) {
         setScopes((prev) =>
-            prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
+            prev.includes(scope)
+                ? prev.filter((s) => s !== scope)
+                : [...prev, scope]
         )
     }
 
     function toggleGrantType(gt: string) {
         if (gt === "client_credentials" && !m2mAllowed) return
         setGrantTypes((prev) =>
-            prev.includes(gt) ? prev.filter((g) => g !== gt) : [...prev, gt],
+            prev.includes(gt) ? prev.filter((g) => g !== gt) : [...prev, gt]
         )
     }
 
@@ -117,11 +134,15 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
         setTrustTier(next)
         const allowed = new Set(scopesAllowedForTier(next))
         setScopes((prev) =>
-            prev.filter((s) => allowed.has(s as (typeof PROVIDER_SCOPES)[number])),
+            prev.filter((s) =>
+                allowed.has(s as (typeof PROVIDER_SCOPES)[number])
+            )
         )
         if (!canSkipConsent(next)) setSkipConsent(false)
         if (!canUseClientCredentials(next)) {
-            setGrantTypes((prev) => prev.filter((g) => g !== "client_credentials"))
+            setGrantTypes((prev) =>
+                prev.filter((g) => g !== "client_credentials")
+            )
         }
     }
 
@@ -137,6 +158,10 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                     uri: uri || null,
                     icon: icon || null,
                     redirectUris,
+                    postLogoutRedirectUris:
+                        postLogoutRedirectUris.length > 0
+                            ? postLogoutRedirectUris
+                            : null,
                     scopes: scopes.length > 0 ? scopes : null,
                     grantTypes: grantTypes.length > 0 ? grantTypes : null,
                     trustTier,
@@ -148,13 +173,20 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                     tos: tos || null,
                     policy: policy || null,
                     contacts: contacts
-                        ? contacts.split(",").map((c) => c.trim()).filter(Boolean)
-                        : null,
+                        ? contacts
+                              .split(",")
+                              .map((c) => c.trim())
+                              .filter(Boolean)
+                        : null
                 })
                 toast.success("Client updated")
                 router.refresh()
             } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Failed to update client")
+                toast.error(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to update client"
+                )
             }
         })
     }
@@ -193,14 +225,18 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                     </Link>
                 </Button>
                 <div className="flex-1">
-                    <h2 className="text-xl font-semibold tracking-tight">
+                    <h2 className="font-semibold text-xl tracking-tight">
                         {client.name || "Unnamed Client"}
                     </h2>
-                    <div className="flex items-center gap-2 mt-1">
-                        <code className="text-xs text-muted-foreground">{client.clientId}</code>
+                    <div className="mt-1 flex items-center gap-2">
+                        <code className="text-muted-foreground text-xs">
+                            {client.clientId}
+                        </code>
                         <button
                             type="button"
-                            onClick={() => copyToClipboard(client.clientId, "clientId")}
+                            onClick={() =>
+                                copyToClipboard(client.clientId, "clientId")
+                            }
                             className="text-muted-foreground hover:text-foreground"
                         >
                             {copiedField === "clientId" ? (
@@ -214,7 +250,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                         ) : (
                             <Badge variant="secondary">Active</Badge>
                         )}
-                        <Badge variant="outline">{TRUST_TIER_LABELS[trustTier]}</Badge>
+                        <Badge variant="outline">
+                            {TRUST_TIER_LABELS[trustTier]}
+                        </Badge>
                     </div>
                 </div>
                 <Button onClick={handleSave} disabled={isPending}>
@@ -227,15 +265,19 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
             {newSecret && (
                 <Card className="border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20">
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-base">New Client Secret</CardTitle>
+                        <CardTitle className="text-base">
+                            New Client Secret
+                        </CardTitle>
                         <CardDescription>
                             Copy this secret now — it cannot be retrieved later.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-2">
-                            <code className="flex-1 truncate rounded-md border bg-background px-3 py-2 text-sm font-mono">
-                                {secretVisible ? newSecret : "••••••••••••••••••••"}
+                            <code className="flex-1 truncate rounded-md border bg-background px-3 py-2 font-mono text-sm">
+                                {secretVisible
+                                    ? newSecret
+                                    : "••••••••••••••••••••"}
                             </code>
                             <Button
                                 size="icon"
@@ -251,7 +293,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                             <Button
                                 size="icon"
                                 variant="outline"
-                                onClick={() => copyToClipboard(newSecret, "newSecret")}
+                                onClick={() =>
+                                    copyToClipboard(newSecret, "newSecret")
+                                }
                             >
                                 {copiedField === "newSecret" ? (
                                     <Check className="size-4" />
@@ -268,31 +312,37 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                 {/* Basic Info */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Basic Information</CardTitle>
+                        <CardTitle className="text-base">
+                            Basic Information
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Application Name</Label>
+                            <Label htmlFor={`${formId}-name`}>
+                                Application Name
+                            </Label>
                             <Input
-                                id="name"
+                                id={`${formId}-name`}
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="My App"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="uri">Application URL</Label>
+                            <Label htmlFor={`${formId}-uri`}>
+                                Application URL
+                            </Label>
                             <Input
-                                id="uri"
+                                id={`${formId}-uri`}
                                 value={uri}
                                 onChange={(e) => setUri(e.target.value)}
                                 placeholder="https://example.com"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="icon">Icon URL</Label>
+                            <Label htmlFor={`${formId}-icon`}>Icon URL</Label>
                             <Input
-                                id="icon"
+                                id={`${formId}-icon`}
                                 value={icon}
                                 onChange={(e) => setIcon(e.target.value)}
                                 placeholder="https://example.com/icon.png"
@@ -311,7 +361,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                             <Label>Trust tier</Label>
                             <Select
                                 value={trustTier}
-                                onValueChange={(v) => handleTrustTierChange(v as TrustTier)}
+                                onValueChange={(v) =>
+                                    handleTrustTierChange(v as TrustTier)
+                                }
                             >
                                 <SelectTrigger className="w-full">
                                     <SelectValue />
@@ -324,14 +376,15 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <p className="text-xs text-muted-foreground">
-                                Promotion is administrative only. Dynamic registration always starts as unknown.
+                            <p className="text-muted-foreground text-xs">
+                                Promotion is administrative only. Dynamic
+                                registration always starts as unknown.
                             </p>
                         </div>
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label>Skip Consent</Label>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                     {skipConsentAllowed
                                         ? "Bypass the user consent screen (first-party only)"
                                         : "Requires first-party trust tier"}
@@ -347,41 +400,53 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label>Enable End Session</Label>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                     Allow RP-initiated logout
                                 </p>
                             </div>
-                            <Switch checked={enableEndSession} onCheckedChange={setEnableEndSession} />
+                            <Switch
+                                checked={enableEndSession}
+                                onCheckedChange={setEnableEndSession}
+                            />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label>Require PKCE</Label>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                     Enforce Proof Key for Code Exchange
                                 </p>
                             </div>
-                            <Switch checked={requirePKCE} onCheckedChange={setRequirePKCE} />
+                            <Switch
+                                checked={requirePKCE}
+                                onCheckedChange={setRequirePKCE}
+                            />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label>Public Client</Label>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                     No client secret required
                                 </p>
                             </div>
-                            <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                            <Switch
+                                checked={isPublic}
+                                onCheckedChange={setIsPublic}
+                            />
                         </div>
                         <Separator />
                         <div className="flex items-center justify-between">
                             <div>
                                 <Label>Disabled</Label>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-muted-foreground text-xs">
                                     Block all authorization requests
                                 </p>
                             </div>
-                            <Switch checked={disabled} onCheckedChange={setDisabled} />
+                            <Switch
+                                checked={disabled}
+                                onCheckedChange={setDisabled}
+                            />
                         </div>
                     </CardContent>
                 </Card>
@@ -389,27 +454,50 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                 {/* OAuth Config */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">OAuth Configuration</CardTitle>
+                        <CardTitle className="text-base">
+                            OAuth Configuration
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label>Redirect URIs</Label>
-                            <RedirectUriInput value={redirectUris} onChange={setRedirectUris} />
+                            <RedirectUriInput
+                                value={redirectUris}
+                                onChange={setRedirectUris}
+                            />
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                            <Label>Post-logout Redirect URIs</Label>
+                            <RedirectUriInput
+                                value={postLogoutRedirectUris}
+                                onChange={setPostLogoutRedirectUris}
+                                placeholder="https://example.com/signed-out"
+                            />
+                            <p className="text-muted-foreground text-xs">
+                                Exact allowlist used by post_logout_redirect_uri
+                                after end session.
+                            </p>
                         </div>
                         <Separator />
                         <div className="space-y-2">
                             <Label>Scopes</Label>
                             <div className="grid grid-cols-2 gap-2">
                                 {PROVIDER_SCOPES.map((scope) => {
-                                    const allowed = allowedScopes.includes(scope)
+                                    const allowed =
+                                        allowedScopes.includes(scope)
                                     return (
                                         <label
                                             key={scope}
+                                            htmlFor={`${formId}-scope-${scope}`}
                                             className={`flex items-center gap-2 text-sm ${!allowed ? "opacity-50" : ""}`}
                                         >
                                             <Checkbox
+                                                id={`${formId}-scope-${scope}`}
                                                 checked={scopes.includes(scope)}
-                                                onCheckedChange={() => toggleScope(scope)}
+                                                onCheckedChange={() =>
+                                                    toggleScope(scope)
+                                                }
                                                 disabled={!allowed}
                                             />
                                             {scope}
@@ -417,7 +505,7 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                                     )
                                 })}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-muted-foreground text-xs">
                                 Scopes are limited by the client trust tier.
                             </p>
                         </div>
@@ -427,15 +515,22 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                             <div className="space-y-2">
                                 {GRANT_TYPES.map((gt) => {
                                     const blocked =
-                                        gt === "client_credentials" && !m2mAllowed
+                                        gt === "client_credentials" &&
+                                        !m2mAllowed
                                     return (
                                         <label
                                             key={gt}
+                                            htmlFor={`${formId}-grant-${gt}`}
                                             className={`flex items-center gap-2 text-sm ${blocked ? "opacity-50" : ""}`}
                                         >
                                             <Checkbox
-                                                checked={grantTypes.includes(gt)}
-                                                onCheckedChange={() => toggleGrantType(gt)}
+                                                id={`${formId}-grant-${gt}`}
+                                                checked={grantTypes.includes(
+                                                    gt
+                                                )}
+                                                onCheckedChange={() =>
+                                                    toggleGrantType(gt)
+                                                }
                                                 disabled={blocked}
                                             />
                                             {gt.replace(/_/g, " ")}
@@ -444,8 +539,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                                 })}
                             </div>
                             {!m2mAllowed && (
-                                <p className="text-xs text-muted-foreground">
-                                    client_credentials requires partner or first-party trust.
+                                <p className="text-muted-foreground text-xs">
+                                    client_credentials requires partner or
+                                    first-party trust.
                                 </p>
                             )}
                         </div>
@@ -455,34 +551,42 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                 {/* Legal & Contact */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Legal & Contact</CardTitle>
+                        <CardTitle className="text-base">
+                            Legal & Contact
+                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="contacts">
+                            <Label htmlFor={`${formId}-contacts`}>
                                 Contact Emails{" "}
-                                <span className="font-normal text-muted-foreground">(comma-separated)</span>
+                                <span className="font-normal text-muted-foreground">
+                                    (comma-separated)
+                                </span>
                             </Label>
                             <Input
-                                id="contacts"
+                                id={`${formId}-contacts`}
                                 value={contacts}
                                 onChange={(e) => setContacts(e.target.value)}
                                 placeholder="admin@example.com, dev@example.com"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="tos">Terms of Service URL</Label>
+                            <Label htmlFor={`${formId}-tos`}>
+                                Terms of Service URL
+                            </Label>
                             <Input
-                                id="tos"
+                                id={`${formId}-tos`}
                                 value={tos}
                                 onChange={(e) => setTos(e.target.value)}
                                 placeholder="https://example.com/terms"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="policy">Privacy Policy URL</Label>
+                            <Label htmlFor={`${formId}-policy`}>
+                                Privacy Policy URL
+                            </Label>
                             <Input
-                                id="policy"
+                                id={`${formId}-policy`}
                                 value={policy}
                                 onChange={(e) => setPolicy(e.target.value)}
                                 placeholder="https://example.com/privacy"
@@ -497,7 +601,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
             {/* Danger Zone */}
             <Card className="border-destructive/50">
                 <CardHeader>
-                    <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
+                    <CardTitle className="text-base text-destructive">
+                        Danger Zone
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-3">
                     {!isPublicOAuthClient(client) && (
@@ -527,8 +633,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                     <DialogHeader>
                         <DialogTitle>Rotate Client Secret</DialogTitle>
                         <DialogDescription>
-                            This will generate a new secret and invalidate the current one.
-                            All applications using the old secret will need to be updated.
+                            This will generate a new secret and invalidate the
+                            current one. All applications using the old secret
+                            will need to be updated.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -553,8 +660,9 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                         <DialogTitle>Delete Client</DialogTitle>
                         <DialogDescription>
                             Are you sure you want to delete{" "}
-                            <strong>{client.name || "this client"}</strong>? This action
-                            cannot be undone and will revoke all associated tokens.
+                            <strong>{client.name || "this client"}</strong>?
+                            This action cannot be undone and will revoke all
+                            associated tokens.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
