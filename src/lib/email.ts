@@ -11,7 +11,7 @@ const SMTP_PORT = Number(process.env.SMTP_PORT) || 587
 const SMTP_USER = process.env.SMTP_USER
 const SMTP_PASS = process.env.SMTP_PASS
 const SMTP_FROM = process.env.SMTP_FROM
-const APP_NAME = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const APP_NAME = process.env.APPLICATION_NAME || "Better Auth Server"
 
 export const smtpEnabled = !!(SMTP_HOST && SMTP_USER && SMTP_PASS && SMTP_FROM)
 const infraEnabled = !!process.env.BETTER_AUTH_API_KEY

@@ -25,7 +25,7 @@ Generated (do not hand-edit): `Dockerfile`, `.dockerignore`, `docker-compose.yml
 |----------|-----------|----------------|
 | Railway | `railway.toml` + `Dockerfile` | Link repo; set env; deploy |
 | Dokploy | `docker-compose.yml` + `Dockerfile` | Compose path `./docker-compose.yml`; set `dokploy.domain` first |
-| Cloudflare Containers (default) | `wrangler.jsonc` + `Dockerfile` + `deploy/cloudflare/container-worker.ts` | `pnpm add -D wrangler @cloudflare/containers` then `pnpm cf:deploy` |
+| Cloudflare Containers (default) | `wrangler.jsonc` + `Dockerfile` + `deploy/cloudflare/container-worker.ts` | `pnpm cf:deploy`; set required secrets with `wrangler secret put` |
 | Cloudflare Workers | OpenNext `wrangler.jsonc` + `open-next.config.ts` | Set `cloudflare.runtime: "workers"`, sync, install OpenNext deps |
 
 ## Config knobs
@@ -34,6 +34,7 @@ Generated (do not hand-edit): `Dockerfile`, `.dockerignore`, `docker-compose.yml
 - `containerStartCommand` — migrate then start (containers need `DATABASE_URL` at **start**)
 - `requiredEnv` — `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 - `cloudflare.runtime` — `"containers"` (default) or `"workers"`
+- `cloudflare.instanceType` — Containers size (`basic` default in this kit; Wrangler’s omit-default is `lite`)
 - `dokploy.domain` / `dokploy.routerName` — Traefik Host rule
 
 ## Cloudflare switch
@@ -42,7 +43,7 @@ Generated (do not hand-edit): `Dockerfile`, `.dockerignore`, `docker-compose.yml
 
 1. Set `cloudflare.runtime: "workers"` in `deploy/config.ts`
 2. `pnpm deploy:sync`
-3. `pnpm add -D wrangler @opennextjs/cloudflare`
+3. `pnpm add -D @opennextjs/cloudflare`
 4. Document Hyperdrive for Postgres — app DB code is not Hyperdrive-wired yet
 
 **Workers → Containers**
@@ -52,4 +53,4 @@ Generated (do not hand-edit): `Dockerfile`, `.dockerignore`, `docker-compose.yml
 
 ## Classic hosts
 
-Render / Fly / similar (no Docker): `pnpm db:migrate && pnpm build` then `pnpm start`. Schema changes still use local `pnpm db:sync` before deploy.
+Render / Fly / similar (no Docker): `pnpm build` then `pnpm start` (start applies pending migrations). Schema changes still use local `pnpm db:sync` before deploy.

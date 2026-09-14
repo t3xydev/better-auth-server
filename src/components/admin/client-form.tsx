@@ -42,11 +42,11 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
-import type { OAuthClientRow } from "@/lib/actions/admin-clients"
 import {
     deleteClient,
     rotateClientSecret,
-    updateClient
+    updateClient,
+    type OAuthClientRow
 } from "@/lib/actions/admin-clients"
 import {
     canSkipConsent,
@@ -58,6 +58,7 @@ import {
     TRUST_TIERS,
     type TrustTier
 } from "@/lib/client-trust"
+import { isPublicOAuthClient } from "@/lib/oauth-client"
 import { RedirectUriInput } from "./redirect-uri-input"
 
 const GRANT_TYPES = [
@@ -92,7 +93,7 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
         client.enableEndSession ?? false
     )
     const [requirePKCE, setRequirePKCE] = useState(client.requirePKCE ?? true)
-    const [isPublic, setIsPublic] = useState(client.public ?? false)
+    const [isPublic, setIsPublic] = useState(isPublicOAuthClient(client))
     const [disabled, setDisabled] = useState(client.disabled ?? false)
     const [tos, setTos] = useState(client.tos ?? "")
     const [policy, setPolicy] = useState(client.policy ?? "")
@@ -605,7 +606,7 @@ export function ClientForm({ client }: { client: OAuthClientRow }) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-wrap gap-3">
-                    {!client.public && (
+                    {!isPublicOAuthClient(client) && (
                         <Button
                             variant="outline"
                             onClick={() => setShowRotateDialog(true)}

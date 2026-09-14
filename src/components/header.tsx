@@ -13,7 +13,7 @@ import { Button } from "./ui/button"
 export async function Header() {
     const session = await auth.api.getSession({ headers: await headers() }).catch(() => null)
     const isAdmin = session?.user?.role === "admin"
-    const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+    const appName = process.env.APPLICATION_NAME || "Better Auth Server"
     const logoUrl = process.env.LOGO_URL
 
     return (
@@ -59,7 +59,7 @@ export async function Header() {
 
                 {showGithub && (
                     <Link
-                        href="https://github.com/t3xydev/better-auth-starterkit"
+                        href="https://github.com/t3xydev/better-auth-server"
                         target="_blank"
                     >
                         <Button

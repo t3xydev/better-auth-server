@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Better Auth StarterKit" width="100%" />
+  <img src="docs/assets/banner.svg" alt="Better Auth Server" width="100%" />
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
 <p align="center">
   <a href="https://betterauth-starterkit.t3xy.dev/"><img src="https://img.shields.io/badge/live%20demo-t3xy.dev-0B1220?style=flat-square" alt="Live demo" /></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/quick%20start-3%20commands-0d9488?style=flat-square" alt="Quick start" /></a>
-  <a href="https://better-auth.com"><img src="https://img.shields.io/badge/Better%20Auth-1.6-black?style=flat-square" alt="Better Auth" /></a>
+  <a href="https://better-auth.com"><img src="https://img.shields.io/badge/Better%20Auth-1.7-black?style=flat-square" alt="Better Auth" /></a>
   <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square" alt="Next.js" /></a>
   <a href="https://orm.drizzle.team"><img src="https://img.shields.io/badge/Drizzle-PostgreSQL-C5F74F?style=flat-square" alt="Drizzle" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-slate?style=flat-square" alt="MIT" /></a>
@@ -89,8 +89,8 @@ Full breakdown → [docs/framework/features.mdx](docs/framework/features.mdx) ·
 **1. Clone & install**
 
 ```bash
-git clone https://github.com/t3xydev/better-auth-starterkit.git
-cd better-auth-starterkit
+git clone https://github.com/t3xydev/better-auth-server.git
+cd better-auth-server
 pnpm install
 ```
 
@@ -133,10 +133,10 @@ pnpm deploy:sync
 
 | Setting | Classic hosts (Render, Fly, …) | Containers (Railway / Dokploy / CF) |
 |---|---|---|
-| **Build** | `pnpm db:migrate && pnpm build` | Image: `pnpm build` |
-| **Start** | `pnpm start` | `pnpm db:migrate && pnpm start` |
+| **Build** | `pnpm build` | Image: `pnpm build` |
+| **Start** | `pnpm start` | `pnpm start` |
 
-`DATABASE_URL` is required at **build** for classic migrate-during-build, or at **container start** for Docker targets. Platform notes → [docs/framework/deployment.mdx](docs/framework/deployment.mdx).
+`pnpm start` and `pnpm dev` apply pending migrations before the server listens (`DATABASE_URL` required at **start**). Platform notes → [docs/framework/deployment.mdx](docs/framework/deployment.mdx).
 
 ```mermaid
 flowchart LR
@@ -144,7 +144,7 @@ flowchart LR
   B --> C[pnpm db:sync]
   C --> D[pnpm dev]
   B --> E[Deploy]
-  E --> F["migrate && build / container start"]
+  E --> F[start migrates then serves]
   F --> G[Auth server live]
 ```
 ## Project layout

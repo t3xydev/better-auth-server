@@ -19,7 +19,7 @@ import { preferredAuthViewPaths } from "@/modules/email-code-login"
 
 export const dynamicParams = false
 
-const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 
 export function generateStaticParams() {
     return Object.values({

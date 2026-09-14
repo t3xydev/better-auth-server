@@ -5,14 +5,14 @@ description: "What ships out of the box."
 
 Everything wired into this starter so you can deploy an auth **server**, not just a login form.
 
-Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth.ts) and [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/auth-client.ts).
+Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth.ts) and [`src/lib/auth-client.ts`](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/auth-client.ts).
 
 ## Authentication methods
 
 | Method | Plugin / config | Notes |
 |---|---|---|
 | Email code | `emailOTP` | Preferred passwordless sign-in at `/auth/sign-in`; password remains available at `/auth/password`. Codes expire after five minutes, are stored hashed, and cannot create unknown accounts |
-| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-starterkit/blob/main/src/lib/email.ts) |
+| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts) |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking (`/account/nostr`) |
@@ -61,7 +61,11 @@ Userinfo    {BASE}/api/auth/oauth2/userinfo
 Discovery   {BASE}/.well-known/openid-configuration
 ```
 
-JWT issuer defaults to `BETTER_AUTH_URL` (overridable with `OAUTH_ISSUER` / `OAUTH_AUDIENCE`).
+JWT issuer defaults to `BETTER_AUTH_URL` (overridable with `OAUTH_ISSUER`). Access tokens are bound to one protected resource — `OAUTH_AUDIENCE` when set, otherwise `BETTER_AUTH_URL`. That identifier is the JWT `aud` claim.
+
+OAuth protocol errors redirect to `/auth/error`, which shows `error` / `error_description` and a link back to sign-in.
+
+Authorization-code **ID tokens no longer include profile or email claims**. Client apps should read those from UserInfo (`/api/auth/oauth2/userinfo`).
 
 ## Admin & operations
 
@@ -118,6 +122,6 @@ An MCP transport route is available at `/api/mcp/[transport]` for tooling integr
 1. Add or configure plugins in `src/lib/auth.ts` (and matching client plugins in `auth-client.ts`).  
 2. Run `pnpm db:sync` locally.  
 3. Commit schema + migration files.  
-4. Deploy with `pnpm db:migrate && pnpm build`.
+4. Deploy. `pnpm start` (and container boot) applies pending migrations.
 
 See [deployment.md](/docs/framework/deployment) and [getting-started.md](/docs/framework/getting-started).

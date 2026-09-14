@@ -1,6 +1,6 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared"
 
-const appName = process.env.APPLICATION_NAME || "Better Auth StarterKit"
+const appName = process.env.APPLICATION_NAME || "Better Auth Server"
 
 export function baseOptions(): BaseLayoutProps {
     return {
@@ -15,7 +15,7 @@ export function baseOptions(): BaseLayoutProps {
             },
             {
                 text: "GitHub",
-                url: "https://github.com/t3xydev/better-auth-starterkit",
+                url: "https://github.com/t3xydev/better-auth-server",
                 external: true
             }
         ]

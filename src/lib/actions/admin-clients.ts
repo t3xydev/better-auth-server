@@ -96,10 +96,9 @@ export async function createClient(data: {
     })
 
     return {
-        id: result.id as string,
-        clientId: result.clientId as string,
-        clientSecret: result.clientSecret as string | null,
-        name: result.name as string | null
+        clientId: result.client_id,
+        clientSecret: result.client_secret ?? null,
+        name: result.client_name ?? null
     }
 }
 
@@ -195,7 +194,11 @@ export async function updateClient(
             ...(data.contacts !== undefined && { contacts: data.contacts }),
             ...(data.tos !== undefined && { tos: data.tos }),
             ...(data.policy !== undefined && { policy: data.policy }),
-            ...(data.isPublic !== undefined && { public: data.isPublic }),
+            ...(data.isPublic !== undefined && {
+                tokenEndpointAuthMethod: data.isPublic
+                    ? "none"
+                    : "client_secret_basic"
+            }),
             ...(metadata !== undefined && { metadata }),
             updatedAt: new Date()
         })

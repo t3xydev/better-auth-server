@@ -57,6 +57,8 @@ Controlled by `ALLOW_DYNAMIC_CLIENT_REGISTRATION` (default off). When enabled:
 
 Unauthenticated public registration remains behind `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION`.
 
+DCR clients are registered against the default protected resource (`OAUTH_AUDIENCE` or `BETTER_AUTH_URL`) via `clientRegistrationDefaultResources` / `clientRegistrationAllowedResources`. Per-client resource enforcement stays on — a token request for an unlinked resource is rejected with `invalid_target`.
+
 ## Privilege evaluation
 
 Every protected API call should satisfy:

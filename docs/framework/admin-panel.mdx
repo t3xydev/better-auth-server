@@ -9,13 +9,9 @@ The admin panel lets administrators register, configure, and manage OAuth client
 
 ## Setup
 
-### 1. Run the database migration
+### 1. Database
 
-The admin plugin adds `role`, `banned`, `ban_reason`, and `ban_expires` columns to the `users` table. Apply the migration:
-
-```bash
-pnpm db:migrate
-```
+`pnpm dev` and `pnpm start` apply committed migrations on boot. After a fresh clone, start the app once Postgres is reachable — the admin columns (`role`, `banned`, …) are already in those migrations.
 
 ### 2. Create an admin user
 

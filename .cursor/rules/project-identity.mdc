@@ -1,11 +1,11 @@
 ---
-description: Core product identity for Better Auth StarterKit — an IdP / OIDC auth server
+description: Core product identity for Better Auth Server — an IdP / OIDC auth server
 alwaysApply: true
 ---
 
 # Project identity
 
-This repo is a **framework and starterkit** built on [Better Auth](https://better-auth.com) for shipping your **own authentication / identity server**.
+This repo is a **framework and starter** built on [Better Auth](https://better-auth.com) for shipping your **own authentication / identity server**.
 
 ## Vision
 

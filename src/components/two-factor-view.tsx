@@ -30,12 +30,11 @@ export function TwoFactorView() {
             path="two-factor"
             classNames={{
                 form: {
-                    base: "justify-items-center [&>.flex]:justify-center",
                     forgotPasswordLink: "hidden",
                     secondaryButton: "hidden",
-                    qrCode: "mx-auto",
-                    otpInput: "h-12 w-12 text-lg",
-                    otpInputContainer: "justify-center"
+                    qrCode: "mx-auto block",
+                    primaryButton: "w-full",
+                    otpInputContainer: "w-full justify-center"
                 },
                 footerLink: "inline-flex items-center gap-1.5"
             }}

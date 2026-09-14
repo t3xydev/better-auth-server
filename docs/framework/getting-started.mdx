@@ -32,8 +32,8 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/better_auth"
 ## Install
 
 ```bash
-git clone https://github.com/t3xydev/better-auth-starterkit.git
-cd better-auth-starterkit
+git clone https://github.com/t3xydev/better-auth-server.git
+cd better-auth-server
 pnpm install
 cp .env.example .env
 ```
@@ -57,9 +57,11 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/better_auth"
 
 Optional: SMTP, branding colors, PostHog, trusted origins — see [environment-variables.md](/docs/framework/environment-variables).
 
-## Database sync
+## Database
 
-When plugins or auth config change, regenerate schema and apply migrations:
+`pnpm dev` and `pnpm start` apply committed Drizzle migrations on boot (they wait if Postgres is still starting). You do not need a separate `pnpm db:migrate` to run the app.
+
+When you change Better Auth plugins or auth config, **generate** new SQL locally, then boot as usual:
 
 ```bash
 pnpm db:sync
@@ -73,11 +75,7 @@ That runs:
 
 Commit any new files under `migrations/` and `src/database/schema.ts` before deploying.
 
-For deploys that only need to apply already-committed migrations:
-
-```bash
-pnpm db:migrate
-```
+This kit stays on **drizzle-kit** for generating SQL (`pnpm db:sync`). Official `auth migrate plan` / `auth migrate apply` is an operator option for a single live product database; do not make the starter depend on that interactive CLI.
 
 ## Run the app
 
@@ -116,10 +114,10 @@ Expected when the DB is up:
 
 | Script | Purpose |
 |---|---|
-| `pnpm dev` | Next.js dev server (Turbopack) |
-| `pnpm build` / `pnpm start` | Production build & serve |
-| `pnpm db:sync` | Full local schema + migrate pipeline |
-| `pnpm db:migrate` | Apply committed migrations only |
+| `pnpm dev` | Apply pending migrations, then Next.js (Turbopack) |
+| `pnpm build` / `pnpm start` | Production build; start migrates, then serves |
+| `pnpm db:sync` | Generate schema + SQL (when plugins/config change) |
+| `pnpm db:migrate` | Apply committed migrations only (also runs on `dev` / `start`) |
 | `pnpm lint` / `pnpm format` | Biome check / format |
 | `pnpm check-types` | `tsc --noEmit` |
 

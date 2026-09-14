@@ -33,6 +33,23 @@
 	text-decoration: none;
 }
 
+/* Visible OTP boxes (2FA, email code, email verification) — not the hidden overlay input. */
+[data-input-otp-container] {
+	width: 100%;
+	justify-content: center;
+}
+
+[data-slot="form-item"]:has([data-input-otp-container]) {
+	justify-items: center;
+}
+
+[data-slot="input-otp-slot"] {
+	padding: 0;
+	line-height: 1;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
 /** iOS Dynamic System Font Scaling */
 /* @supports (-webkit-touch-callout:none) {
 	html {

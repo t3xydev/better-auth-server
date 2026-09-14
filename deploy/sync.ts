@@ -30,12 +30,14 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
-RUN pnpm install --frozen-lockfile
+# Skip lifecycle scripts: postinstall (fumadocs-mdx) needs source.config.ts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm rebuild && pnpm run postinstall
 RUN ${buildCommand}
 
 FROM base AS runner
@@ -51,18 +53,19 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/patches ./patches
-COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts/db-migrate.mjs ./scripts/db-migrate.mjs
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/src/database ./src/database
 
 USER nextjs
 EXPOSE ${port}
 
-# Migrate at container start (needs DATABASE_URL), then start Next.js
+# Migrate at process start (needs DATABASE_URL), then serve Next.js
 CMD ["sh", "-c", "${containerStartCommand}"]
 `
 }
@@ -136,8 +139,9 @@ restartPolicyMaxRetries = 5
 }
 
 function wranglerContainers(): string {
-    const { name, cloudflare } = deployConfig
+    const { name, cloudflare, requiredEnv } = deployConfig
     const className = cloudflare.containerClassName
+    const secrets = requiredEnv.map((key) => `"${key}"`).join(", ")
     return `// ${GENERATED}
 // Cloudflare runtime: containers (default)
 {
@@ -150,6 +154,7 @@ function wranglerContainers(): string {
 		{
 			"class_name": "${className}",
 			"image": "./Dockerfile",
+			"instance_type": "${cloudflare.instanceType}",
 			"max_instances": 3
 		}
 	],
@@ -167,6 +172,9 @@ function wranglerContainers(): string {
 			"new_sqlite_classes": ["${className}"]
 		}
 	],
+	"secrets": {
+		"required": [${secrets}]
+	},
 	"observability": {
 		"enabled": true
 	}

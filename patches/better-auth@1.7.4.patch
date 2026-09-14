@@ -1,5 +1,5 @@
 diff --git a/dist/plugins/two-factor/totp/index.mjs b/dist/plugins/two-factor/totp/index.mjs
-index eb63801edf110395c595650e1ac2bea834415324..b35baf0d4f3709871c5e9c150fe0e4af0d3aeb50 100644
+index 1111111..2222222 100644
 --- a/dist/plugins/two-factor/totp/index.mjs
 +++ b/dist/plugins/two-factor/totp/index.mjs
 @@ -180,7 +180,10 @@ const totp2fa = (options) => {

@@ -31,7 +31,7 @@ Do not invent more permanent branches unless the user asks. After eject, product
 ```bash
 # origin = this fork (already set)
 # upstream = starter kit (add once)
-git remote add upstream https://github.com/t3xydev/better-auth-starterkit.git
+git remote add upstream https://github.com/t3xydev/better-auth-server.git
 git fetch upstream
 ```
 

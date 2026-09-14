@@ -1,9 +1,12 @@
-import { betterAuth, type BetterAuthPlugin } from "better-auth"
+import { drizzleAdapter } from "@better-auth/drizzle-adapter"
+import { dash, sentinel } from "@better-auth/infra"
+import { oauthProvider } from "@better-auth/oauth-provider"
+import { getAuthenticatorName, passkey } from "@better-auth/passkey"
+import { dbsc } from "@dbsc-toolkit/better-auth"
+import { type BetterAuthPlugin, betterAuth } from "better-auth"
+import { memoryAdapter } from "better-auth/adapters/memory"
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { expireCookie } from "better-auth/cookies"
-import { dash, sentinel } from "@better-auth/infra"
-import { passkey, getAuthenticatorName } from "@better-auth/passkey"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { nextCookies } from "better-auth/next-js"
 import {
     admin,
@@ -12,26 +15,23 @@ import {
     organization,
     twoFactor
 } from "better-auth/plugins"
-import { oauthProvider } from "@better-auth/oauth-provider"
-import { invite } from "better-invite"
-import { nostr } from "better-auth-nostr"
-import { dbsc } from "@dbsc-toolkit/better-auth"
 import { devtools } from "better-auth-devtools"
-import { emailCodeLogin } from "@/lib/plugins/email-code-login"
-import { nostrLink } from "@/lib/plugins/nostr-link"
-
+import { nostr } from "better-auth-nostr"
+import { invite } from "better-invite"
 import { db } from "@/database/db"
 import * as schema from "@/database/schema"
-import { sendEmail } from "./email"
-import {
-    allowDynamicClientRegistration,
-    allowUnauthenticatedClientRegistration
-} from "./dynamic-client-registration"
+import { emailCodeLogin } from "@/lib/plugins/email-code-login"
+import { nostrLink } from "@/lib/plugins/nostr-link"
 import {
     DCR_DEFAULT_SCOPES,
     PROVIDER_SCOPES,
     PUBLIC_SCOPES
 } from "./client-trust"
+import {
+    allowDynamicClientRegistration,
+    allowUnauthenticatedClientRegistration
+} from "./dynamic-client-registration"
+import { sendEmail } from "./email"
 import { INVITE_TOKEN_COOKIE, inviteOnly } from "./invite-only"
 import { isUsableInviteToken } from "./invite-only-server"
 import { organizationsEnabled } from "./organizations"
@@ -50,6 +50,11 @@ const authOrigin = (
     process.env.BETTER_AUTH_URL || "http://localhost:3000"
 ).replace(/\/$/, "")
 
+const defaultResource = (process.env.OAUTH_AUDIENCE || authOrigin).replace(
+    /\/$/,
+    ""
+)
+
 const trustedOrigins = [
     authOrigin,
     ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
@@ -60,17 +65,26 @@ const trustedOrigins = [
 
 export const auth = betterAuth({
     // baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-    appName: process.env.APPLICATION_NAME || "Better Auth StarterKit",
+    appName: process.env.APPLICATION_NAME || "Better Auth Server",
     trustedOrigins,
-    experimental: { joins: true },
+    onAPIError: { errorURL: "/auth/error" },
     advanced: {
-        ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] }
+        ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },
+        database: { joins: true }
     },
     session: {
         storeSessionInDatabase: true,
         cookieCache: { enabled: true, maxAge: 5 * 60, strategy: "jwe" }
     },
-    database: drizzleAdapter(db, { provider: "pg", usePlural: true, schema }),
+    database:
+        process.env.AUTH_GENERATE === "1"
+            ? memoryAdapter({ oauthResource: [] })
+            : drizzleAdapter(db, {
+                  provider: "pg",
+                  usePlural: true,
+                  schema,
+                  transaction: true
+              }),
     emailVerification: {
         sendVerificationEmail: async ({ user, url }) => {
             void sendEmail({
@@ -133,7 +147,7 @@ export const auth = betterAuth({
         admin(),
         twoFactor(),
         passkey({
-            rpName: process.env.APPLICATION_NAME || "Better Auth StarterKit",
+            rpName: process.env.APPLICATION_NAME || "Better Auth Server",
             origin: authOrigin,
             rpID: new URL(authOrigin).hostname,
             authentication: {
@@ -192,7 +206,7 @@ export const auth = betterAuth({
             },
             async sendUserInvitation({ email, role, url, newAccount }) {
                 const appName =
-                    process.env.APPLICATION_NAME || "Better Auth StarterKit"
+                    process.env.APPLICATION_NAME || "Better Auth Server"
                 void sendEmail({
                     template: "application-invite",
                     to: email,
@@ -228,11 +242,9 @@ export const auth = betterAuth({
             loginPage: "/auth/sign-in",
             consentPage: "/consent",
             scopes: [...ALLOWED_SCOPES],
-            validAudiences: [
-                process.env.BETTER_AUTH_URL ||
-                    process.env.OAUTH_AUDIENCE ||
-                    "http://localhost:3000"
-            ],
+            resources: [defaultResource],
+            clientRegistrationDefaultResources: [defaultResource],
+            clientRegistrationAllowedResources: [defaultResource],
             allowDynamicClientRegistration,
             allowUnauthenticatedClientRegistration,
             allowPublicClientPrelogin: false,
@@ -250,9 +262,9 @@ export const auth = betterAuth({
             customAccessTokenClaims: async ({ user }) =>
                 user?.role ? { roles: [user.role] } : {},
             customIdTokenClaims: async ({ user }) =>
-                user.role ? { roles: [user.role] } : {},
+                user?.role ? { roles: [user.role] } : {},
             customUserInfoClaims: async ({ user }) =>
-                user.role ? { roles: [user.role] } : {},
+                user?.role ? { roles: [user.role] } : {},
             advertisedMetadata: {
                 claims_supported: [
                     "sub",
@@ -271,13 +283,45 @@ export const auth = betterAuth({
                     "family_name",
                     "roles"
                 ]
-            },
-            silenceWarnings: {
-                openidConfig: true,
-                oauthConfig: true,
-                oauthAuthServerConfig: true
             }
         }),
+        {
+            id: "oauth-client-default-resource-backfill",
+            init: async (ctx) => {
+                if (process.env.AUTH_GENERATE === "1") return
+                try {
+                    const clients = await ctx.adapter.findMany({
+                        model: "oauthClient"
+                    })
+                    for (const client of clients as { clientId?: string }[]) {
+                        if (!client.clientId) continue
+                        const existing = await ctx.adapter.findOne({
+                            model: "oauthClientResource",
+                            where: [
+                                {
+                                    field: "clientId",
+                                    value: client.clientId
+                                },
+                                {
+                                    field: "resourceId",
+                                    value: defaultResource
+                                }
+                            ]
+                        })
+                        if (existing) continue
+                        await ctx.adapter.create({
+                            model: "oauthClientResource",
+                            data: {
+                                clientId: client.clientId,
+                                resourceId: defaultResource
+                            }
+                        })
+                    }
+                } catch {
+                    // Schema generate / first migrate may run before these tables exist.
+                }
+            }
+        } satisfies BetterAuthPlugin,
         dbsc() as BetterAuthPlugin,
         devtools({
             enabled: true,

@@ -41,7 +41,7 @@ These configure the OAuth 2.1 / OpenID Connect provider plugin.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `OAUTH_ISSUER` | Override the JWT `iss` claim. Falls back to `BETTER_AUTH_URL`. | `BETTER_AUTH_URL` |
-| `OAUTH_AUDIENCE` | Override the valid audience list for access tokens. Falls back to `BETTER_AUTH_URL`. | `BETTER_AUTH_URL` |
+| `OAUTH_AUDIENCE` | Protected resource identifier and JWT `aud` for access tokens. Also used as the default (and only allowed) resource for Dynamic Client Registration. Falls back to `BETTER_AUTH_URL`. | `BETTER_AUTH_URL` |
 | `ALLOW_DYNAMIC_CLIENT_REGISTRATION` | Enable OAuth dynamic client registration (`/oauth2/register`) for authenticated users. Set to `"true"` to enable. | `false` |
 | `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION` | Allow public clients to register without a session (useful for MCP). Requires DCR to be enabled. Set to `"true"` to enable. | `false` |
 
@@ -53,7 +53,7 @@ Customize the app name, theme color, and asset URLs. All are optional.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `APPLICATION_NAME` | Display name shown in the header, metadata, OG images, and PWA manifest. | `Better Auth StarterKit` |
+| `APPLICATION_NAME` | Display name shown in the header, metadata, OG images, and PWA manifest. | `Better Auth Server` |
 | `NEXT_PUBLIC_PRIMARY_HUE` | OKLCH hue value (0-360) for the primary theme color. Set as `--primary-hue` CSS variable. | Theme default |
 | `NEXT_PUBLIC_PRIMARY_CHROMA` | OKLCH chroma value for the primary theme color. Set as `--primary-chroma` CSS variable. | Theme default |
 | `FAVICON_URL` | URL to a custom favicon. | `/icon.svg` |

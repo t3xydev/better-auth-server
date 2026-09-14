@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { deleteClient, toggleClient } from "@/lib/actions/admin-clients"
 import type { OAuthClientRow } from "@/lib/actions/admin-clients"
+import { isPublicOAuthClient } from "@/lib/oauth-client"
 import { TRUST_TIER_LABELS, getTrustTier } from "@/lib/client-trust"
 
 export function ClientTable({ clients }: { clients: OAuthClientRow[] }) {
@@ -140,7 +141,7 @@ export function ClientTable({ clients }: { clients: OAuthClientRow[] }) {
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="outline">
-                                        {client.public ? "Public" : "Confidential"}
+                                        {isPublicOAuthClient(client) ? "Public" : "Confidential"}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>

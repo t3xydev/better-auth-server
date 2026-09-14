@@ -8,12 +8,14 @@ WORKDIR /app
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 COPY patches ./patches
-RUN pnpm install --frozen-lockfile
+# Skip lifecycle scripts: postinstall (fumadocs-mdx) needs source.config.ts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm rebuild && pnpm run postinstall
 RUN pnpm build
 
 FROM base AS runner
@@ -29,16 +31,17 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/patches ./patches
-COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/scripts/db-migrate.mjs ./scripts/db-migrate.mjs
 COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/src/database ./src/database
 
 USER nextjs
 EXPOSE 3000
 
-# Migrate at container start (needs DATABASE_URL), then start Next.js
-CMD ["sh", "-c", "pnpm db:migrate && pnpm start"]
+# Migrate at process start (needs DATABASE_URL), then serve Next.js
+CMD ["sh", "-c", "pnpm start"]
