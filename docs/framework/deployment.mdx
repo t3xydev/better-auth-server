@@ -15,11 +15,11 @@ One source of truth: [`deploy/config.ts`](../deploy/config.ts). After you change
 pnpm deploy:sync
 ```
 
-Do not hand-edit generated files (`Dockerfile`, `.dockerignore`, `docker-compose.yml`, `railway.toml`, `wrangler.jsonc`). Edit the config and re-sync.
+Do not hand-edit generated files (`Dockerfile`, `.dockerignore`, `docker-compose.yml`, `.railway/railway.ts`, `wrangler.jsonc`). Edit the config and re-sync.
 
 | Target | Files | Notes |
 |--------|--------|--------|
-| **Railway** | `railway.toml` + `Dockerfile` | Dockerfile builder; healthcheck `/api/health` |
+| **Railway** | `.railway/railway.ts` + `Dockerfile` | Dockerfile builder; healthcheck `/api/health` (2xx liveness) |
 | **Dokploy** | `docker-compose.yml` + `Dockerfile` | Traefik labels + `dokploy-network`; set `dokploy.domain` |
 | **Cloudflare** | `wrangler.jsonc` + `Dockerfile` (default) | **Containers** by default; switch to Workers in config |
 
@@ -29,10 +29,14 @@ Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH
 
 ### Railway
 
-1. Create a service from this repo and attach Postgres (or set `DATABASE_URL`).
-2. Set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` (your public URL).
-3. Deploy — `railway.toml` selects the Dockerfile and healthcheck (`/api/health`).
-4. Point the public domain at port **3000**. Clear leftover dashboard settings from other templates (for example a custom build command, healthcheck `/health`, or target port `8080`) — those override the file and will fail the deploy.
+Railway [Config as Code](https://docs.railway.com/config-as-code) (`railway.toml`) is deprecated. This kit uses [Infrastructure as Code](https://docs.railway.com/infrastructure-as-code) under `.railway/railway.ts`.
+
+1. Install the Railway CLI and `pnpm` dep `railway` (already a devDependency).
+2. Link the project: `railway link`.
+3. Preview / apply canvas + service settings: `railway config plan` then `railway config apply`.
+4. Confirm `PORT=3000`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `DATABASE_URL` (IaC wires Postgres/Redis refs; secrets use `preserve()`).
+5. Deploy from `main`. Healthcheck is `/api/health` (always **2xx** when the process is up). For DB readiness probes use `/api/health?ready=1`.
+6. Point the public domain at port **3000**. Clear leftover dashboard settings from older templates (Railpack build command, healthcheck `/health`, target port `8080`, app sleeping) — those fight the Dockerfile / IaC settings and fail the deploy.
 
 ### Dokploy
 

@@ -77,7 +77,7 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 | Sentinel | Bot / challenge protection (client auto-solve enabled) |
 | OpenAPI | Interactive API reference via `openAPI()` plugin |
 | DevTools | Floating panel in development for test users |
-| Health check | `GET /api/health` — DB ping + latency |
+| Health check | `GET /api/health` — liveness (2xx); `?ready=1` for DB readiness |
 
 ## Sessions & security
 
