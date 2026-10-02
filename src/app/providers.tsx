@@ -49,6 +49,7 @@ export function Providers({ children }: { children: ReactNode }) {
                         viewPaths={preferredAuthViewPaths}
                         twoFactor={["totp"]}
                         passkey
+                        multiSession
                         organization={organizationsEnabled || undefined}
                         credentials={{
                             passwordValidation: {

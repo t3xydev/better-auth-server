@@ -6,6 +6,7 @@ import type { BetterAuthPlugin } from "better-auth"
 import {
     adminClient,
     emailOTPClient,
+    multiSessionClient,
     organizationClient,
     twoFactorClient
 } from "better-auth/client/plugins"
@@ -34,7 +35,8 @@ const authEventsByPath: Record<string, string> = {
     "/two-factor/enable": "2fa_enabled",
     "/two-factor/disable": "2fa_disabled",
     "/nostr/login": "nostr_sign_in",
-    "/nostr/link": "nostr_key_linked"
+    "/nostr/link": "nostr_key_linked",
+    "/nostr/unlink": "nostr_key_unlinked"
 }
 
 export const authClient = createAuthClient({
@@ -56,6 +58,7 @@ export const authClient = createAuthClient({
             twoFactorPage: "/auth/two-factor"
         }),
         nostrClient(),
+        multiSessionClient(),
         oauthProviderClient(),
         inviteClient() as unknown as {
             id: "invite"

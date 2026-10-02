@@ -11,6 +11,7 @@ import { nextCookies } from "better-auth/next-js"
 import {
     admin,
     jwt,
+    multiSession,
     openAPI,
     organization,
     twoFactor
@@ -231,6 +232,7 @@ export const auth = betterAuth({
         }) as unknown as FixErrorCodes<ReturnType<typeof invite>>,
         nostr({ disableImplicitSignUp: true }),
         nostrLink(),
+        multiSession(),
         billing(),
         segments(),
         dash(),
