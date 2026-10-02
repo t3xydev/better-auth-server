@@ -4,12 +4,16 @@ import { db } from "@/database/db"
 import {
     billingCustomers,
     billingEntitlements,
-    billingSubscriptions
+    billingSubscriptions,
+    billingWebhookEvents
 } from "@/database/schema"
 
 import { entitlementKeyForProduct, findPriceByProviderId } from "./catalog"
+import { isMockProviderId, parseProcessorId, stripeConfigured } from "./enabled"
+import { mapEntitlementStatus } from "./store-status"
 import type {
     BillingEntitlement,
+    BillingManageMode,
     BillingSubscription,
     BillingSubscriptionStatus,
     EntitlementClaims,
@@ -42,22 +46,7 @@ function asStatus(value: string): BillingSubscriptionStatus {
     }
 }
 
-export function mapEntitlementStatus(
-    status: string,
-    currentPeriodEnd: Date | null,
-    now = new Date()
-): EntitlementStatus {
-    if (status === "trialing" || status === "active") return "active"
-    if (status === "past_due") return "grace"
-    if (
-        status === "canceled" &&
-        currentPeriodEnd &&
-        currentPeriodEnd.getTime() > now.getTime()
-    ) {
-        return "active"
-    }
-    return "expired"
-}
+export { mapEntitlementStatus } from "./store-status"
 
 function toIso(value: Date | null) {
     return value ? value.toISOString() : null
@@ -68,6 +57,7 @@ export function serializeSubscription(
 ): BillingSubscription {
     return {
         id: row.id,
+        provider: parseProcessorId(row.provider) ?? "stripe",
         productKey: row.productKey,
         priceKey: row.priceKey,
         status: asStatus(row.status),
@@ -89,11 +79,16 @@ export function serializeEntitlement(
     }
 }
 
-export async function getCustomerByUserId(userId: string) {
+export async function getCustomerByUserId(userId: string, provider: string) {
     const rows = await db
         .select()
         .from(billingCustomers)
-        .where(eq(billingCustomers.userId, userId))
+        .where(
+            and(
+                eq(billingCustomers.userId, userId),
+                eq(billingCustomers.provider, provider)
+            )
+        )
         .limit(1)
     return rows[0] ?? null
 }
@@ -120,17 +115,13 @@ export async function upsertCustomer(input: {
     provider: string
     providerCustomerId: string
 }) {
-    const existing = await getCustomerByUserId(input.userId)
+    const existing = await getCustomerByUserId(input.userId, input.provider)
     const now = new Date()
     if (existing) {
-        if (
-            existing.providerCustomerId !== input.providerCustomerId ||
-            existing.provider !== input.provider
-        ) {
+        if (existing.providerCustomerId !== input.providerCustomerId) {
             await db
                 .update(billingCustomers)
                 .set({
-                    provider: input.provider,
                     providerCustomerId: input.providerCustomerId,
                     updatedAt: now
                 })
@@ -194,6 +185,8 @@ export async function upsertSubscriptionFromProvider(input: {
     provider: string
     providerSubscriptionId: string
     providerPriceId: string | null
+    productKey?: string
+    priceKey?: string
     status: string
     currentPeriodStart: Date | null
     currentPeriodEnd: Date | null
@@ -202,10 +195,14 @@ export async function upsertSubscriptionFromProvider(input: {
     endedAt: Date | null
 }) {
     const matched = input.providerPriceId
-        ? findPriceByProviderId(input.providerPriceId)
+        ? findPriceByProviderId(input.provider, input.providerPriceId)
         : null
-    const productKey = matched?.product.key ?? "premium"
-    const priceKey = matched?.price.key ?? input.providerPriceId ?? "unknown"
+    const productKey = input.productKey ?? matched?.product.key ?? "premium"
+    const priceKey =
+        input.priceKey ??
+        matched?.price.key ??
+        input.providerPriceId ??
+        "unknown"
     const now = new Date()
     const existing = await getSubscriptionByProviderId(
         input.provider,
@@ -375,6 +372,88 @@ export async function getAccountBilling(userId: string) {
 
     return {
         subscription: current ? serializeSubscription(current) : null,
-        entitlements: entitlementRows.map(serializeEntitlement)
+        entitlements: entitlementRows.map(serializeEntitlement),
+        manageMode: manageModeForSubscription(current)
     }
+}
+
+export function manageModeForSubscription(
+    row: BillingSubscriptionRow | null
+): BillingManageMode | null {
+    if (!row || !OPEN_STATUSES.has(asStatus(row.status))) return null
+    if (
+        row.provider === "stripe" &&
+        stripeConfigured() &&
+        !isMockProviderId(row.providerSubscriptionId)
+    ) {
+        return "portal"
+    }
+    return "cancel"
+}
+
+export async function assertCanStartCheckout(userId: string) {
+    const open = await getOpenSubscription(userId)
+    const live = await listLiveEntitlements(userId)
+    if (open || live.length > 0) {
+        throw new Error("An active subscription already exists")
+    }
+}
+
+export async function cancelSubscriptionInStore(input: {
+    userId: string
+    provider: string
+    atPeriodEnd: boolean
+}) {
+    const open = await getOpenSubscription(input.userId)
+    if (!open || open.provider !== input.provider) {
+        throw new Error("No matching subscription to cancel")
+    }
+    const now = new Date()
+    if (input.atPeriodEnd) {
+        await db
+            .update(billingSubscriptions)
+            .set({
+                cancelAtPeriodEnd: true,
+                canceledAt: now,
+                updatedAt: now
+            })
+            .where(eq(billingSubscriptions.id, open.id))
+    } else {
+        await db
+            .update(billingSubscriptions)
+            .set({
+                status: "canceled",
+                cancelAtPeriodEnd: false,
+                canceledAt: now,
+                endedAt: now,
+                currentPeriodEnd: now,
+                updatedAt: now
+            })
+            .where(eq(billingSubscriptions.id, open.id))
+    }
+    await recomputeEntitlements(input.userId)
+}
+
+export async function webhookEventSeen(provider: string, eventId: string) {
+    const rows = await db
+        .select({ id: billingWebhookEvents.id })
+        .from(billingWebhookEvents)
+        .where(
+            and(
+                eq(billingWebhookEvents.provider, provider),
+                eq(billingWebhookEvents.eventId, eventId)
+            )
+        )
+        .limit(1)
+    return rows.length > 0
+}
+
+export async function recordWebhookEvent(provider: string, eventId: string) {
+    if (await webhookEventSeen(provider, eventId)) return
+    await db.insert(billingWebhookEvents).values({
+        id: crypto.randomUUID(),
+        provider,
+        eventId,
+        createdAt: new Date()
+    })
 }

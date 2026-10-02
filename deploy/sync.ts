@@ -127,12 +127,7 @@ networks:
 }
 
 function railwayIac(): string {
-    const {
-        port,
-        healthcheckPath,
-        healthcheckTimeout,
-        railway
-    } = deployConfig
+    const { port, healthcheckPath, healthcheckTimeout, railway } = deployConfig
     return `// ${GENERATED}
 // Railway Infrastructure as Code — plan/apply with the Railway CLI:
 //   railway link && railway config plan && railway config apply
@@ -188,7 +183,12 @@ export default defineRailway(() => {
             STRIPE_WEBHOOK_SECRET: preserve(),
             BILLING_STRIPE_PRICE_PREMIUM_MONTHLY: preserve(),
             BILLING_STRIPE_PRICE_PREMIUM_YEARLY: preserve(),
-            BILLING_TRIAL_DAYS: preserve()
+            BILLING_TRIAL_DAYS: preserve(),
+            ZONELESS_API_KEY: preserve(),
+            ZONELESS_API_URL: preserve(),
+            ZONELESS_WEBHOOK_SECRET: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_YEARLY: preserve()
         }
     })
 
@@ -199,7 +199,6 @@ export default defineRailway(() => {
     })
 })
 `
-
 }
 
 function railwayReadme(): string {

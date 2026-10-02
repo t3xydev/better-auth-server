@@ -1,19 +1,34 @@
 import { randomBytes } from "node:crypto"
 import Stripe from "stripe"
 
-import { findPrice, getTrialDays, isPlaceholderPriceId } from "./catalog"
-import { billingConfigured } from "./enabled"
 import {
+    findPrice,
+    getTrialDays,
+    isPlaceholderPriceId,
+    priceIdForProcessor
+} from "../catalog"
+import { isMockProviderId, processorLabel, stripeConfigured } from "../enabled"
+import type { BillingProcessor, CheckoutInput } from "../processors"
+import {
+    authOrigin,
+    idOf,
+    periodFromSubscription,
+    priceIdFromSubscription,
+    unixToDate
+} from "../shared"
+import {
+    assertCanStartCheckout,
     getCustomerByProviderId,
     getCustomerByUserId,
     getOpenSubscription,
-    listLiveEntitlements,
+    recordWebhookEvent,
     upsertCustomer,
     upsertSubscriptionFromProvider,
-    userHasSubscriptionHistory
-} from "./store"
+    userHasSubscriptionHistory,
+    webhookEventSeen
+} from "../store"
 
-const PROVIDER = "stripe"
+const PROVIDER = "stripe" as const
 
 let stripeClient: Stripe | null = null
 
@@ -28,13 +43,6 @@ export function getStripe() {
     return stripeClient
 }
 
-function authOrigin() {
-    return (process.env.BETTER_AUTH_URL || "http://localhost:3000").replace(
-        /\/$/,
-        ""
-    )
-}
-
 function randomLetters(length = 8) {
     const alphabet = "abcdefghijklmnopqrstuvwxyz"
     return Array.from(randomBytes(length), (byte) => alphabet[byte % 26]).join(
@@ -42,45 +50,13 @@ function randomLetters(length = 8) {
     )
 }
 
-function unixToDate(value: number | null | undefined) {
-    return typeof value === "number" ? new Date(value * 1000) : null
-}
-
-function customerIdOf(
-    customer: string | Stripe.Customer | Stripe.DeletedCustomer | null
-) {
-    if (!customer) return null
-    return typeof customer === "string" ? customer : customer.id
-}
-
-function subscriptionIdOf(
-    subscription: string | Stripe.Subscription | null | undefined
-) {
-    if (!subscription) return null
-    return typeof subscription === "string" ? subscription : subscription.id
-}
-
-function periodFromSubscription(subscription: Stripe.Subscription) {
-    const item = subscription.items.data[0]
-    return {
-        start: unixToDate(item?.current_period_start),
-        end: unixToDate(item?.current_period_end)
-    }
-}
-
-function priceIdFromSubscription(subscription: Stripe.Subscription) {
-    const price = subscription.items.data[0]?.price
-    if (!price) return null
-    return typeof price === "string" ? price : price.id
-}
-
 export async function ensureStripeCustomer(input: {
     userId: string
     email: string
     name?: string | null
 }) {
-    const existing = await getCustomerByUserId(input.userId)
-    if (existing?.provider === PROVIDER) {
+    const existing = await getCustomerByUserId(input.userId, PROVIDER)
+    if (existing && !isMockProviderId(existing.providerCustomerId)) {
         return existing.providerCustomerId
     }
 
@@ -98,29 +74,21 @@ export async function ensureStripeCustomer(input: {
     return customer.id
 }
 
-export async function createCheckoutUrl(input: {
-    userId: string
-    email: string
-    name?: string | null
-    priceKey: string
-}) {
-    if (!billingConfigured()) {
-        throw new Error("Billing is not configured")
+export async function createCheckoutUrl(input: CheckoutInput) {
+    if (!stripeConfigured()) {
+        throw new Error("Card billing is not configured")
     }
     const matched = findPrice(input.priceKey)
     if (!matched) {
         throw new Error("Unknown price")
     }
-    if (isPlaceholderPriceId(matched.price.priceId)) {
+    const priceId = priceIdForProcessor(matched.price, PROVIDER)
+    if (!priceId || isPlaceholderPriceId(priceId)) {
         throw new Error(
             "This plan is a development placeholder. Set Stripe Price IDs to enable checkout."
         )
     }
-    const open = await getOpenSubscription(input.userId)
-    const live = await listLiveEntitlements(input.userId)
-    if (open || live.length > 0) {
-        throw new Error("An active subscription already exists")
-    }
+    await assertCanStartCheckout(input.userId)
 
     const customerId = await ensureStripeCustomer(input)
     const trialDays = getTrialDays()
@@ -131,7 +99,7 @@ export async function createCheckoutUrl(input: {
         mode: "subscription",
         customer: customerId,
         client_reference_id: input.userId,
-        line_items: [{ price: matched.price.priceId, quantity: 1 }],
+        line_items: [{ price: priceId, quantity: 1 }],
         success_url: `${origin}/account/billing?checkout=success`,
         cancel_url: `${origin}/account/billing?checkout=canceled`,
         metadata: { userId: input.userId },
@@ -151,11 +119,11 @@ export async function createCheckoutUrl(input: {
 }
 
 export async function createPortalUrl(userId: string) {
-    if (!billingConfigured()) {
-        throw new Error("Billing is not configured")
+    if (!stripeConfigured()) {
+        throw new Error("Card billing is not configured")
     }
-    const customer = await getCustomerByUserId(userId)
-    if (!customer) {
+    const customer = await getCustomerByUserId(userId, PROVIDER)
+    if (!customer || isMockProviderId(customer.providerCustomerId)) {
         throw new Error("No billing customer")
     }
     const stripe = getStripe()
@@ -167,11 +135,32 @@ export async function createPortalUrl(userId: string) {
     return session.url
 }
 
+async function cancelStripeSubscription(input: {
+    userId: string
+    atPeriodEnd: boolean
+}) {
+    const open = await getOpenSubscription(input.userId)
+    if (!open || open.provider !== PROVIDER) {
+        throw new Error("No matching subscription to cancel")
+    }
+    if (isMockProviderId(open.providerSubscriptionId)) {
+        throw new Error("Mock subscriptions cannot be canceled through Stripe")
+    }
+    const stripe = getStripe()
+    if (input.atPeriodEnd) {
+        await stripe.subscriptions.update(open.providerSubscriptionId, {
+            cancel_at_period_end: true
+        })
+        return
+    }
+    await stripe.subscriptions.cancel(open.providerSubscriptionId)
+}
+
 async function syncStripeSubscription(
     subscription: Stripe.Subscription,
     fallbackUserId?: string | null
 ) {
-    const customerId = customerIdOf(subscription.customer)
+    const customerId = idOf(subscription.customer)
     const metadataUserId = subscription.metadata?.userId || fallbackUserId
     let userId = metadataUserId || null
     if (!userId && customerId) {
@@ -214,19 +203,20 @@ async function retrieveAndSyncSubscription(
 
 function subscriptionIdFromInvoice(invoice: Stripe.Invoice) {
     if (invoice.parent?.type !== "subscription_details") return null
-    return subscriptionIdOf(invoice.parent.subscription_details?.subscription)
+    return idOf(invoice.parent.subscription_details?.subscription)
 }
 
 export async function handleStripeEvent(event: Stripe.Event) {
+    if (await webhookEventSeen(PROVIDER, event.id)) return
     switch (event.type) {
         case "checkout.session.completed": {
             const session = event.data.object as Stripe.Checkout.Session
-            if (session.mode !== "subscription") return
-            const subscriptionId = subscriptionIdOf(session.subscription)
+            if (session.mode !== "subscription") break
+            const subscriptionId = idOf(session.subscription)
             const userId =
                 session.metadata?.userId || session.client_reference_id
             if (session.customer) {
-                const customerId = customerIdOf(session.customer)
+                const customerId = idOf(session.customer)
                 if (customerId && userId) {
                     await upsertCustomer({
                         userId,
@@ -238,7 +228,7 @@ export async function handleStripeEvent(event: Stripe.Event) {
             if (subscriptionId) {
                 await retrieveAndSyncSubscription(subscriptionId, userId)
             }
-            return
+            break
         }
         case "customer.subscription.created":
         case "customer.subscription.updated":
@@ -246,7 +236,7 @@ export async function handleStripeEvent(event: Stripe.Event) {
             await syncStripeSubscription(
                 event.data.object as Stripe.Subscription
             )
-            return
+            break
         }
         case "invoice.paid":
         case "invoice.payment_failed": {
@@ -257,11 +247,12 @@ export async function handleStripeEvent(event: Stripe.Event) {
             if (subscriptionId) {
                 await retrieveAndSyncSubscription(subscriptionId, userId)
             }
-            return
+            break
         }
         default:
-            return
+            break
     }
+    await recordWebhookEvent(PROVIDER, event.id)
 }
 
 export async function constructStripeEvent(payload: string, signature: string) {
@@ -271,4 +262,13 @@ export async function constructStripeEvent(payload: string, signature: string) {
     }
     const stripe = getStripe()
     return stripe.webhooks.constructEventAsync(payload, signature, secret)
+}
+
+export const stripeProcessor: BillingProcessor = {
+    id: PROVIDER,
+    label: processorLabel(PROVIDER),
+    configured: stripeConfigured,
+    createCheckoutUrl,
+    createPortalUrl,
+    cancel: cancelStripeSubscription
 }

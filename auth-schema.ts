@@ -232,7 +232,6 @@ export const billingCustomers = pgTable(
     id: text("id").primaryKey(),
     userId: text("user_id")
       .notNull()
-      .unique()
       .references(() => users.id, { onDelete: "cascade" }),
     provider: text("provider").notNull(),
     providerCustomerId: text("provider_customer_id").notNull(),
@@ -240,6 +239,10 @@ export const billingCustomers = pgTable(
     updatedAt: timestamp("updated_at").notNull(),
   },
   (table) => [
+    uniqueIndex("billingCustomer_userId_provider_uidx").on(
+      table.userId,
+      table.provider,
+    ),
     uniqueIndex("billingCustomer_provider_providerCustomerId_uidx").on(
       table.provider,
       table.providerCustomerId,
@@ -294,6 +297,22 @@ export const billingEntitlements = pgTable(
     uniqueIndex("billingEntitlement_userId_key_uidx").on(
       table.userId,
       table.key,
+    ),
+  ],
+);
+
+export const billingWebhookEvents = pgTable(
+  "billing_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    eventId: text("event_id").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingWebhookEvent_provider_eventId_uidx").on(
+      table.provider,
+      table.eventId,
     ),
   ],
 );
@@ -605,7 +624,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   invites: many(invites),
   inviteUses: many(inviteUses),
   nostrPubkeys: many(nostrPubkeys),
-  billingCustomers: one(billingCustomers),
+  billingCustomers: many(billingCustomers),
   billingSubscriptions: many(billingSubscriptions),
   billingEntitlements: many(billingEntitlements),
   segmentRoleMembers: many(segmentRoleMembers),

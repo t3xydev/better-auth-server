@@ -1,5 +1,7 @@
 export type BillingInterval = "monthly" | "yearly"
 
+export type BillingProcessorId = "stripe" | "zoneless"
+
 export type BillingSubscriptionStatus =
     | "incomplete"
     | "incomplete_expired"
@@ -25,17 +27,27 @@ export type BillingProduct = {
     prices: BillingPrice[]
 }
 
+export type BillingMethod = {
+    id: BillingProcessorId
+    label: string
+    configured: boolean
+    mock: boolean
+}
+
 export type BillingCatalog = {
     enabled: boolean
     configured: boolean
     /** True when `next dev` is filling missing Price IDs with placeholders. */
     placeholders: boolean
     trialDays: number | null
+    defaultProvider: BillingProcessorId
+    methods: BillingMethod[]
     products: BillingProduct[]
 }
 
 export type BillingSubscription = {
     id: string
+    provider: BillingProcessorId
     productKey: string
     priceKey: string
     status: BillingSubscriptionStatus
@@ -60,3 +72,5 @@ export type EntitlementClaims = {
         currentPeriodEnd: string | null
     } | null
 }
+
+export type BillingManageMode = "portal" | "cancel"

@@ -31,8 +31,9 @@ export default function PricingPage() {
 
             {catalog.placeholders ? (
                 <p className="text-muted-foreground text-sm">
-                    Showing catalog placeholders. Checkout needs Stripe keys and
-                    Price IDs.
+                    Showing catalog placeholders. In development you can
+                    subscribe with a mock processor; hosted checkout needs
+                    processor keys and Price IDs.
                 </p>
             ) : null}
 
@@ -60,6 +61,15 @@ export default function PricingPage() {
                                     .join(" or ")}
                                 {catalog.trialDays
                                     ? ` · ${catalog.trialDays}-day trial`
+                                    : null}
+                                {catalog.methods.length > 0
+                                    ? ` · ${catalog.methods
+                                          .map((method) =>
+                                              method.mock
+                                                  ? `${method.label} (mock)`
+                                                  : method.label
+                                          )
+                                          .join(" or ")}`
                                     : null}
                             </CardContent>
                             <CardFooter>

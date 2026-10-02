@@ -17,8 +17,13 @@ import { authClient } from "@/lib/auth-client"
 import type {
     BillingCatalog,
     BillingEntitlement,
+    BillingManageMode,
+    BillingProcessorId,
     BillingSubscription
 } from "@/modules/billing"
+import { parseProcessorId } from "@/modules/billing"
+
+const PROCESSOR_STORAGE_KEY = "billing-processor"
 
 type BillingResponse = {
     enabled: boolean
@@ -26,6 +31,7 @@ type BillingResponse = {
     catalog: BillingCatalog
     subscription: BillingSubscription | null
     entitlements: BillingEntitlement[]
+    manageMode: BillingManageMode | null
 }
 
 function statusLabel(status: string) {
@@ -58,9 +64,19 @@ function intervalLabel(interval: string) {
     return interval === "yearly" ? "Yearly" : "Monthly"
 }
 
+function methodLabel(id: BillingProcessorId) {
+    return id === "zoneless" ? "USDC" : "Card"
+}
+
+function readStoredProvider() {
+    if (typeof window === "undefined") return null
+    return parseProcessorId(window.localStorage.getItem(PROCESSOR_STORAGE_KEY))
+}
+
 export function BillingView() {
     const [data, setData] = useState<BillingResponse | null>(null)
     const [pendingKey, setPendingKey] = useState<string | null>(null)
+    const [provider, setProvider] = useState<BillingProcessorId | null>(null)
 
     const load = useCallback(async () => {
         const { data: payload, error } = await authClient.billing.subscription()
@@ -75,6 +91,28 @@ export function BillingView() {
         void load()
     }, [load])
 
+    useEffect(() => {
+        if (!data) return
+        const methods = data.catalog.methods
+        const stored = readStoredProvider()
+        const next =
+            (stored && methods.some((method) => method.id === stored)
+                ? stored
+                : null) ??
+            (methods.some(
+                (method) => method.id === data.catalog.defaultProvider
+            )
+                ? data.catalog.defaultProvider
+                : methods[0]?.id) ??
+            "stripe"
+        setProvider(next)
+    }, [data])
+
+    function chooseProvider(id: BillingProcessorId) {
+        setProvider(id)
+        window.localStorage.setItem(PROCESSOR_STORAGE_KEY, id)
+    }
+
     const entitled = useMemo(
         () =>
             (data?.entitlements ?? []).filter(
@@ -83,15 +121,24 @@ export function BillingView() {
         [data]
     )
 
+    const selectedMethod = data?.catalog.methods.find(
+        (method) => method.id === provider
+    )
+    const checkoutReady = Boolean(
+        selectedMethod && (selectedMethod.configured || selectedMethod.mock)
+    )
+    const showMethodToggle = (data?.catalog.methods.length ?? 0) > 1
+
     async function startCheckout(priceKey: string) {
-        if (!data?.configured) {
-            toast.error("Add Stripe keys and Price IDs to enable checkout.")
+        if (!provider || !checkoutReady) {
+            toast.error("Choose a payment method that is available.")
             return
         }
         setPendingKey(priceKey)
         try {
             const { data: payload, error } = await authClient.billing.checkout({
-                priceKey
+                priceKey,
+                provider
             })
             if (error) {
                 toast.error(error.message || "Unable to start checkout")
@@ -109,10 +156,6 @@ export function BillingView() {
     }
 
     async function openPortal() {
-        if (!data?.configured) {
-            toast.error("Add Stripe keys to open the billing portal.")
-            return
-        }
         setPendingKey("portal")
         try {
             const { data: payload, error } = await authClient.billing.portal()
@@ -131,18 +174,41 @@ export function BillingView() {
         }
     }
 
-    if (!data) {
+    async function cancelSubscription(atPeriodEnd: boolean) {
+        setPendingKey(atPeriodEnd ? "cancel-end" : "cancel-now")
+        try {
+            const { error } = await authClient.billing.cancel({
+                atPeriodEnd
+            })
+            if (error) {
+                toast.error(error.message || "Unable to cancel subscription")
+                return
+            }
+            toast.success(
+                atPeriodEnd
+                    ? "Cancellation scheduled at period end"
+                    : "Subscription canceled"
+            )
+            await load()
+        } finally {
+            setPendingKey(null)
+        }
+    }
+
+    if (!data || !provider) {
         return <p className="text-muted-foreground text-sm">Loading billing…</p>
     }
 
-    const checkoutReady = data.configured
     const subscription = data.subscription
     const hasOpenSubscription = Boolean(subscription)
-    const placeholderNote = data.catalog.placeholders
-        ? "Development placeholders — add Stripe keys and Price IDs to enable checkout."
-        : !checkoutReady
-          ? "Add Stripe keys and Price IDs to enable checkout."
-          : null
+    const mockSelected = Boolean(selectedMethod?.mock)
+    const placeholderNote = mockSelected
+        ? "Development mock — checkout grants a local subscription until processor keys are set."
+        : data.catalog.placeholders
+          ? "Development placeholders — add processor keys and Price IDs to enable hosted checkout."
+          : !data.configured && !checkoutReady
+            ? "Add processor keys and Price IDs to enable checkout."
+            : null
 
     return (
         <div className="flex flex-col gap-6">
@@ -176,6 +242,9 @@ export function BillingView() {
                                 >
                                     {statusLabel(subscription.status)}
                                 </Badge>
+                                <Badge variant="outline">
+                                    {methodLabel(subscription.provider)}
+                                </Badge>
                             </div>
                             {subscription.currentPeriodEnd && (
                                 <p className="text-muted-foreground text-sm">
@@ -199,16 +268,40 @@ export function BillingView() {
                         </p>
                     )}
                 </CardContent>
-                {hasOpenSubscription && (
+                {hasOpenSubscription && data.manageMode === "portal" && (
                     <CardFooter>
                         <Button
                             variant="outline"
-                            disabled={pendingKey === "portal" || !checkoutReady}
+                            disabled={pendingKey === "portal"}
                             onClick={() => void openPortal()}
                         >
                             {pendingKey === "portal"
                                 ? "Opening…"
                                 : "Manage billing"}
+                        </Button>
+                    </CardFooter>
+                )}
+                {hasOpenSubscription && data.manageMode === "cancel" && (
+                    <CardFooter className="flex flex-wrap gap-2">
+                        {!subscription?.cancelAtPeriodEnd ? (
+                            <Button
+                                variant="outline"
+                                disabled={pendingKey === "cancel-end"}
+                                onClick={() => void cancelSubscription(true)}
+                            >
+                                {pendingKey === "cancel-end"
+                                    ? "Canceling…"
+                                    : "Cancel at period end"}
+                            </Button>
+                        ) : null}
+                        <Button
+                            variant="ghost"
+                            disabled={pendingKey === "cancel-now"}
+                            onClick={() => void cancelSubscription(false)}
+                        >
+                            {pendingKey === "cancel-now"
+                                ? "Canceling…"
+                                : "Cancel now"}
                         </Button>
                     </CardFooter>
                 )}
@@ -224,6 +317,33 @@ export function BillingView() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-3">
+                            {showMethodToggle ? (
+                                <div className="flex flex-col gap-2">
+                                    <p className="text-muted-foreground text-sm">
+                                        Payment method
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {data.catalog.methods.map((method) => (
+                                            <Button
+                                                key={method.id}
+                                                type="button"
+                                                size="sm"
+                                                variant={
+                                                    provider === method.id
+                                                        ? "default"
+                                                        : "outline"
+                                                }
+                                                onClick={() =>
+                                                    chooseProvider(method.id)
+                                                }
+                                            >
+                                                {method.label}
+                                                {method.mock ? " (mock)" : ""}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
                             {data.catalog.trialDays ? (
                                 <p className="text-muted-foreground text-sm">
                                     {data.catalog.trialDays}-day trial on first

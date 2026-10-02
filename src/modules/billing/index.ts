@@ -3,12 +3,17 @@ export {
     billingConfigured,
     billingDevPlaceholders,
     billingEnabled,
-    billingProvider
+    billingProvider,
+    getPublishableMethods,
+    parseProcessorId,
+    processorAvailable
 } from "./enabled"
 export type {
     BillingCatalog,
     BillingEntitlement,
-    BillingPrice,
+    BillingManageMode,
+    BillingMethod,
+    BillingProcessorId,
     BillingProduct,
     BillingSubscription,
     EntitlementClaims

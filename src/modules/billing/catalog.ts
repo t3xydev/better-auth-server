@@ -2,9 +2,14 @@ import {
     billingConfigured,
     billingDevPlaceholders,
     billingEnabled,
-    hasStripePriceIds
+    billingProvider,
+    getPublishableMethods
 } from "./enabled"
-import type { BillingCatalog, BillingInterval } from "./types"
+import type {
+    BillingCatalog,
+    BillingInterval,
+    BillingProcessorId
+} from "./types"
 
 export const DEV_PLACEHOLDER_MONTHLY = "price_dev_premium_monthly"
 export const DEV_PLACEHOLDER_YEARLY = "price_dev_premium_yearly"
@@ -27,7 +32,7 @@ function trialDays() {
 export type CatalogPrice = {
     key: string
     interval: BillingInterval
-    priceId: string
+    priceIds: Partial<Record<BillingProcessorId, string>>
 }
 
 export type CatalogProduct = {
@@ -38,27 +43,39 @@ export type CatalogProduct = {
     prices: CatalogPrice[]
 }
 
-/** Operator catalog. Stripe Dashboard owns Products/Prices; env holds Price IDs. */
+function stripePrice(name: "MONTHLY" | "YEARLY", placeholder: string) {
+    return (
+        env(`BILLING_STRIPE_PRICE_PREMIUM_${name}`) ||
+        (billingDevPlaceholders ? placeholder : "")
+    )
+}
+
+/** Operator catalog. Each processor Dashboard owns Prices; env holds Price IDs. */
 export function getCatalogProducts(): CatalogProduct[] {
-    const monthly =
-        env("BILLING_STRIPE_PRICE_PREMIUM_MONTHLY") ||
-        (billingDevPlaceholders ? DEV_PLACEHOLDER_MONTHLY : "")
-    const yearly =
-        env("BILLING_STRIPE_PRICE_PREMIUM_YEARLY") ||
-        (billingDevPlaceholders ? DEV_PLACEHOLDER_YEARLY : "")
+    const monthlyStripe = stripePrice("MONTHLY", DEV_PLACEHOLDER_MONTHLY)
+    const yearlyStripe = stripePrice("YEARLY", DEV_PLACEHOLDER_YEARLY)
+    const monthlyZoneless = env("BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY")
+    const yearlyZoneless = env("BILLING_ZONELESS_PRICE_PREMIUM_YEARLY")
+
     const prices = [
-        monthly
+        monthlyStripe || monthlyZoneless || billingDevPlaceholders
             ? {
                   key: "premium_monthly" as const,
                   interval: "monthly" as const,
-                  priceId: monthly
+                  priceIds: {
+                      ...(monthlyStripe ? { stripe: monthlyStripe } : {}),
+                      ...(monthlyZoneless ? { zoneless: monthlyZoneless } : {})
+                  }
               }
             : null,
-        yearly
+        yearlyStripe || yearlyZoneless || billingDevPlaceholders
             ? {
                   key: "premium_yearly" as const,
                   interval: "yearly" as const,
-                  priceId: yearly
+                  priceIds: {
+                      ...(yearlyStripe ? { stripe: yearlyStripe } : {}),
+                      ...(yearlyZoneless ? { zoneless: yearlyZoneless } : {})
+                  }
               }
             : null
     ].filter((price): price is NonNullable<typeof price> => price != null)
@@ -78,11 +95,14 @@ export function getCatalogProducts(): CatalogProduct[] {
 
 export function getPublishableCatalog(): BillingCatalog {
     const products = getCatalogProducts()
+    const methods = getPublishableMethods()
     return {
         enabled: billingEnabled,
         configured: billingConfigured() && products.length > 0,
-        placeholders: billingDevPlaceholders && !hasStripePriceIds(),
+        placeholders: billingDevPlaceholders && !billingConfigured(),
         trialDays: trialDays(),
+        defaultProvider: billingProvider,
+        methods,
         products: products.map((product) => ({
             key: product.key,
             name: product.name,
@@ -113,10 +133,20 @@ export function entitlementKeyForProduct(productKey: string) {
     return product?.entitlementKey ?? productKey
 }
 
-export function findPriceByProviderId(priceId: string) {
+export function findPriceByProviderId(provider: string, priceId: string) {
+    const id = provider as BillingProcessorId
     for (const product of getCatalogProducts()) {
-        const price = product.prices.find((item) => item.priceId === priceId)
+        const price = product.prices.find(
+            (item) => item.priceIds[id] === priceId
+        )
         if (price) return { product, price }
     }
     return null
+}
+
+export function priceIdForProcessor(
+    price: CatalogPrice,
+    provider: BillingProcessorId
+) {
+    return price.priceIds[provider] || ""
 }

@@ -7,14 +7,34 @@ import {
 import { z } from "zod"
 
 import { getPublishableCatalog } from "./catalog"
-import { billingConfigured, billingEnabled } from "./enabled"
+import {
+    billingConfigured,
+    billingEnabled,
+    parseProcessorId,
+    processorAvailable,
+    processorLabel,
+    stripeConfigured
+} from "./enabled"
+import { resolveProcessor, resolveProcessorForSubscription } from "./processors"
 
-function requireConfigured() {
-    if (!billingEnabled || !billingConfigured()) {
+function requireEnabled() {
+    if (!billingEnabled) {
         throw new APIError("BAD_REQUEST", {
             message: "Billing is not enabled"
         })
     }
+}
+
+function requireProcessor(id: ReturnType<typeof parseProcessorId>) {
+    requireEnabled()
+    if (!id || !processorAvailable(id)) {
+        throw new APIError("BAD_REQUEST", {
+            message: id
+                ? `${processorLabel(id)} billing is not configured`
+                : "Unknown billing provider"
+        })
+    }
+    return id
 }
 
 export function billing() {
@@ -25,7 +45,6 @@ export function billing() {
                 fields: {
                     userId: {
                         type: "string",
-                        unique: true,
                         references: {
                             model: "user",
                             field: "id",
@@ -46,6 +65,10 @@ export function billing() {
                     }
                 },
                 indexes: [
+                    {
+                        fields: ["userId", "provider"],
+                        unique: true
+                    },
                     {
                         fields: ["provider", "providerCustomerId"],
                         unique: true
@@ -151,6 +174,25 @@ export function billing() {
                         unique: true
                     }
                 ]
+            },
+            billingWebhookEvent: {
+                fields: {
+                    provider: {
+                        type: "string"
+                    },
+                    eventId: {
+                        type: "string"
+                    },
+                    createdAt: {
+                        type: "date"
+                    }
+                },
+                indexes: [
+                    {
+                        fields: ["provider", "eventId"],
+                        unique: true
+                    }
+                ]
             }
         },
         rateLimit: [
@@ -165,7 +207,18 @@ export function billing() {
                 max: 10
             },
             {
+                pathMatcher: (path: string) => path === "/billing/cancel",
+                window: 60,
+                max: 8
+            },
+            {
                 pathMatcher: (path: string) => path === "/billing/webhook",
+                window: 60,
+                max: 60
+            },
+            {
+                pathMatcher: (path: string) =>
+                    path === "/billing/webhook/zoneless",
                 window: 60,
                 max: 60
             }
@@ -207,7 +260,8 @@ export function billing() {
                             configured: false,
                             catalog,
                             subscription: null,
-                            entitlements: []
+                            entitlements: [],
+                            manageMode: null
                         })
                     }
                     const { getAccountBilling } = await import("./store")
@@ -228,21 +282,24 @@ export function billing() {
                     method: "POST",
                     use: [sessionMiddleware],
                     body: z.object({
-                        priceKey: z.string().min(1)
+                        priceKey: z.string().min(1),
+                        provider: z.enum(["stripe", "zoneless"])
                     }),
                     metadata: {
                         openapi: {
                             operationId: "createBillingCheckout",
-                            description: "Create a Stripe Checkout session"
+                            description: "Create a hosted checkout session"
                         }
                     }
                 },
                 async (ctx) => {
-                    requireConfigured()
+                    const provider = requireProcessor(
+                        parseProcessorId(ctx.body.provider)
+                    )
                     const user = ctx.context.session.user
                     try {
-                        const { createCheckoutUrl } = await import("./stripe")
-                        const url = await createCheckoutUrl({
+                        const processor = await resolveProcessor(provider)
+                        const url = await processor.createCheckoutUrl({
                             userId: user.id,
                             email: user.email,
                             name: user.name,
@@ -273,10 +330,26 @@ export function billing() {
                     }
                 },
                 async (ctx) => {
-                    requireConfigured()
+                    requireEnabled()
+                    if (!stripeConfigured()) {
+                        throw new APIError("BAD_REQUEST", {
+                            message: "Card billing portal is not configured"
+                        })
+                    }
                     try {
-                        const { createPortalUrl } = await import("./stripe")
-                        const url = await createPortalUrl(
+                        const { getOpenSubscription } = await import("./store")
+                        const open = await getOpenSubscription(
+                            ctx.context.session.user.id
+                        )
+                        if (!open || open.provider !== "stripe") {
+                            throw new Error("No card subscription to manage")
+                        }
+                        const processor =
+                            await resolveProcessorForSubscription(open)
+                        if (!processor.createPortalUrl) {
+                            throw new Error("No billing portal for this method")
+                        }
+                        const url = await processor.createPortalUrl(
                             ctx.context.session.user.id
                         )
                         return ctx.json({ url })
@@ -286,6 +359,54 @@ export function billing() {
                                 error instanceof Error
                                     ? error.message
                                     : "Unable to open billing portal"
+                        })
+                    }
+                }
+            ),
+            billingCancel: createAuthEndpoint(
+                "/billing/cancel",
+                {
+                    method: "POST",
+                    use: [sessionMiddleware],
+                    body: z.object({
+                        atPeriodEnd: z.boolean().optional()
+                    }),
+                    metadata: {
+                        openapi: {
+                            operationId: "cancelBillingSubscription",
+                            description:
+                                "Cancel the current subscription with its owning processor"
+                        }
+                    }
+                },
+                async (ctx) => {
+                    requireEnabled()
+                    try {
+                        const { getOpenSubscription } = await import("./store")
+                        const open = await getOpenSubscription(
+                            ctx.context.session.user.id
+                        )
+                        if (!open) {
+                            throw new Error("No active subscription")
+                        }
+                        const processor =
+                            await resolveProcessorForSubscription(open)
+                        if (!processor.cancel) {
+                            throw new Error(
+                                "This payment method cannot cancel in-app"
+                            )
+                        }
+                        await processor.cancel({
+                            userId: ctx.context.session.user.id,
+                            atPeriodEnd: ctx.body.atPeriodEnd ?? true
+                        })
+                        return ctx.json({ ok: true })
+                    } catch (error) {
+                        throw new APIError("BAD_REQUEST", {
+                            message:
+                                error instanceof Error
+                                    ? error.message
+                                    : "Unable to cancel subscription"
                         })
                     }
                 }
@@ -319,7 +440,7 @@ export function billing() {
                     const payload = await ctx.request.text()
                     try {
                         const { constructStripeEvent, handleStripeEvent } =
-                            await import("./stripe")
+                            await import("./processors/stripe")
                         const event = await constructStripeEvent(
                             payload,
                             signature
@@ -328,6 +449,54 @@ export function billing() {
                     } catch (error) {
                         ctx.context.logger.error(
                             `Billing webhook failed: ${
+                                error instanceof Error
+                                    ? error.message
+                                    : "unknown error"
+                            }`
+                        )
+                        throw new APIError("BAD_REQUEST", {
+                            message: "Webhook rejected"
+                        })
+                    }
+                    return ctx.json({ received: true })
+                }
+            ),
+            billingZonelessWebhook: createAuthEndpoint(
+                "/billing/webhook/zoneless",
+                {
+                    method: "POST",
+                    metadata: {
+                        openapi: {
+                            operationId: "handleZonelessBillingWebhook",
+                            description: "Zoneless billing webhook"
+                        }
+                    },
+                    cloneRequest: true,
+                    disableBody: true
+                },
+                async (ctx) => {
+                    if (!ctx.request) {
+                        throw new APIError("BAD_REQUEST", {
+                            message: "Missing request"
+                        })
+                    }
+                    const signature =
+                        ctx.request.headers.get("zoneless-signature") ??
+                        ctx.request.headers.get("Zoneless-Signature")
+                    if (!signature) {
+                        throw new APIError("BAD_REQUEST", {
+                            message: "Missing Zoneless signature"
+                        })
+                    }
+                    const payload = await ctx.request.text()
+                    try {
+                        const { constructZonelessEvent, handleZonelessEvent } =
+                            await import("./processors/zoneless")
+                        const event = constructZonelessEvent(payload, signature)
+                        await handleZonelessEvent(event)
+                    } catch (error) {
+                        ctx.context.logger.error(
+                            `Zoneless billing webhook failed: ${
                                 error instanceof Error
                                     ? error.message
                                     : "unknown error"

@@ -53,7 +53,12 @@ export default defineRailway(() => {
             STRIPE_WEBHOOK_SECRET: preserve(),
             BILLING_STRIPE_PRICE_PREMIUM_MONTHLY: preserve(),
             BILLING_STRIPE_PRICE_PREMIUM_YEARLY: preserve(),
-            BILLING_TRIAL_DAYS: preserve()
+            BILLING_TRIAL_DAYS: preserve(),
+            ZONELESS_API_KEY: preserve(),
+            ZONELESS_API_URL: preserve(),
+            ZONELESS_WEBHOOK_SECRET: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_YEARLY: preserve()
         }
     })
 
