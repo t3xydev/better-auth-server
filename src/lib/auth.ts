@@ -25,6 +25,7 @@ import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
 import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
 import { billing } from "@/modules/billing/plugin"
+import { captureOAuthOutcome } from "@/modules/observability/oauth-capture"
 import { segmentClaimsForUser } from "@/modules/segments/claims"
 import { segments } from "@/modules/segments/plugin"
 import {
@@ -144,6 +145,21 @@ export const auth = betterAuth({
             throw new APIError("FORBIDDEN", {
                 message: "An invitation is required to create an account."
             })
+        }),
+        after: createAuthMiddleware(async (ctx) => {
+            const session = ctx.context.session as
+                | { user?: { id?: string } }
+                | null
+                | undefined
+            const pending = captureOAuthOutcome({
+                path: ctx.path,
+                body: ctx.body,
+                query: ctx.query,
+                returned: ctx.context.returned,
+                userId: session?.user?.id ?? null
+            })
+            if (!pending) return
+            ctx.context.runInBackground(pending)
         })
     },
     disabledPaths: ["/token"],

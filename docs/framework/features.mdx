@@ -114,11 +114,15 @@ Customize without code changes:
 - Optional GitHub header link (`NEXT_PUBLIC_SHOW_GITHUB=true`)
 - In-app docs via Fumadocs at `/docs/framework` (opt-in with `NEXT_PUBLIC_DOCS_ENABLED=true`)
 
-## Analytics
+## Observability
 
-Set `NEXT_PUBLIC_POSTHOG_KEY` (and optionally `NEXT_PUBLIC_POSTHOG_HOST`) to enable PostHog pageviews and auth-related event tracking. Omit the key to disable analytics entirely.
+PostHog, Sentry, and OpenTelemetry are optional and independent. Leave their variables unset and nothing is sent.
 
-Identify sets `privilege_role`, `roles`, and `groups` person properties so PostHog feature flags can target catalog membership. See [roles-and-groups.md](/docs/framework/roles-and-groups).
+Set `NEXT_PUBLIC_POSTHOG_KEY` for pageviews, auth events, and identify. Person properties include `privilege_role`, `roles`, and `groups` for feature flags — see [roles-and-groups](/docs/framework/roles-and-groups). Server capture covers OAuth authorize, consent, and token outcomes. Session replay stays off unless `NEXT_PUBLIC_POSTHOG_SESSION_REPLAY=true`.
+
+Sentry receives errors. Traces go to the backend selected by `OTEL_BACKEND`: a generic OTLP collector, GitLab, or SigNoz.
+
+Setup, scrubbing, and variables: [observability](/docs/framework/observability).
 
 ## MCP
 

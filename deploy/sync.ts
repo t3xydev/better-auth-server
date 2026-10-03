@@ -54,6 +54,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/patches ./patches
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --from=builder /app/src/modules/observability/posthog-hosts.mjs ./src/modules/observability/posthog-hosts.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next

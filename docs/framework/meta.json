@@ -8,6 +8,7 @@
     "deployment",
     "---",
     "environment-variables",
+    "observability",
     "billing",
     "admin-panel",
     "roles-and-groups",
