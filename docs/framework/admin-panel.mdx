@@ -36,6 +36,7 @@ Non-admin users are redirected away automatically.
 Also available:
 
 - **Users** at `/admin/users` — privilege plus catalog roles and groups ([roles-and-groups.md](/docs/framework/roles-and-groups))
+- **Roles** at `/admin/roles` and **Groups** at `/admin/groups` — catalogs, permissions, and members
 - **Invites** at `/admin/invites` — see [invitations.md](/docs/framework/invitations)
 
 ---
@@ -110,8 +111,8 @@ src/
 │   ├── page.tsx                # Redirects to /admin/clients
 │   ├── clients/                # OAuth client list + detail
 │   ├── users/                  # User list + privilege / catalog assignment
-│   ├── roles/                  # Catalog roles
-│   ├── groups/                 # Groups
+│   ├── roles/                  # Catalog roles, permissions, and members
+│   ├── groups/                 # Groups and members
 │   └── invites/                # Invites
 ├── components/admin/
 │   ├── client-table.tsx

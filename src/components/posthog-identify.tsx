@@ -44,13 +44,15 @@ export function PostHogIdentify() {
                 createdAt: session.user.createdAt,
                 privilege_role: data.privilegeRole,
                 roles,
-                groups: data.groups
+                groups: data.groups,
+                permissions: data.permissions
             }
             const signature = JSON.stringify({
                 userId: personId,
                 privilege_role: data.privilegeRole,
                 roles,
-                groups: data.groups
+                groups: data.groups,
+                permissions: data.permissions
             })
             const isNewIdentity = identifiedUserIdRef.current !== personId
 

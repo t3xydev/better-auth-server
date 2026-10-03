@@ -1,6 +1,7 @@
 "use client"
 
 import { Pencil, Plus, Trash2 } from "lucide-react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useId, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -188,13 +189,31 @@ export function CatalogTable({
                         {items.map((item) => (
                             <TableRow key={item.id}>
                                 <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="font-medium">
+                                    <div className="flex flex-col gap-1">
+                                        <Link
+                                            href={`/admin/${kind === "role" ? "roles" : "groups"}/${item.id}`}
+                                            className="font-medium hover:underline"
+                                        >
                                             {item.name}
-                                        </span>
+                                        </Link>
                                         {item.description ? (
                                             <span className="text-muted-foreground text-xs">
                                                 {item.description}
+                                            </span>
+                                        ) : null}
+                                        {kind === "role" &&
+                                        item.permissions.length > 0 ? (
+                                            <span className="flex flex-wrap gap-1">
+                                                {item.permissions.map(
+                                                    (permission) => (
+                                                        <Badge
+                                                            key={permission}
+                                                            variant="secondary"
+                                                        >
+                                                            {permission}
+                                                        </Badge>
+                                                    )
+                                                )}
                                             </span>
                                         ) : null}
                                     </div>
@@ -310,7 +329,15 @@ export function CatalogTable({
                         <DialogTitle>Delete {copy[kind].noun}</DialogTitle>
                         <DialogDescription>
                             {deleteTarget
-                                ? `Delete “${deleteTarget.name}” (${deleteTarget.slug})? This is blocked while members are assigned.`
+                                ? `Delete “${deleteTarget.name}” (${deleteTarget.slug})? ${
+                                      deleteTarget.memberCount === 0
+                                          ? "This cannot be undone."
+                                          : `${deleteTarget.memberCount} ${
+                                                deleteTarget.memberCount === 1
+                                                    ? "member"
+                                                    : "members"
+                                            } will lose this ${copy[kind].noun}.`
+                                  }`
                                 : null}
                         </DialogDescription>
                     </DialogHeader>

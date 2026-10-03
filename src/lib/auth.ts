@@ -209,6 +209,28 @@ export const auth = betterAuth({
                     invitedUser.role === "user" || invitedUser.role === "admin"
                 )
             },
+            inviteHooks: {
+                afterCreateInvite: async ({ invitations }) => {
+                    const { currentInviteGrants } = await import(
+                        "@/modules/segments/invite-grants"
+                    )
+                    const { saveInviteGrants } = await import(
+                        "@/modules/segments/store"
+                    )
+                    const pending = currentInviteGrants()
+                    if (!pending) return
+                    await saveInviteGrants(
+                        invitations.map((invitation) => invitation.id),
+                        pending
+                    )
+                },
+                afterAcceptInvite: async ({ invitation, invitedUser }) => {
+                    const { applyInviteGrants } = await import(
+                        "@/modules/segments/store"
+                    )
+                    await applyInviteGrants(invitation.id, invitedUser.id)
+                }
+            },
             async sendUserInvitation({ email, role, url, newAccount }) {
                 const appName =
                     process.env.APPLICATION_NAME || "Better Auth Server"
@@ -294,6 +316,7 @@ export const auth = betterAuth({
                     "family_name",
                     "roles",
                     "groups",
+                    "permissions",
                     "entitlements",
                     "subscription"
                 ]

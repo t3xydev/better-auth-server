@@ -18,6 +18,10 @@ export function segments() {
                         type: "string",
                         required: false
                     },
+                    permissions: {
+                        type: "string[]",
+                        required: false
+                    },
                     createdAt: {
                         type: "date"
                     },
@@ -116,6 +120,27 @@ export function segments() {
                         fields: ["groupId"]
                     }
                 ]
+            },
+            inviteSegmentGrant: {
+                fields: {
+                    inviteId: {
+                        type: "string",
+                        unique: true,
+                        references: {
+                            model: "invite",
+                            field: "id",
+                            onDelete: "cascade"
+                        }
+                    },
+                    roleIds: {
+                        type: "string[]",
+                        required: true
+                    },
+                    groupIds: {
+                        type: "string[]",
+                        required: true
+                    }
+                }
             }
         },
         rateLimit: [
@@ -135,7 +160,7 @@ export function segments() {
                         openapi: {
                             operationId: "getMySegments",
                             description:
-                                "Current user's IdP privilege, catalog roles, and groups"
+                                "Current user's IdP privilege, catalog roles, groups, and permissions"
                         }
                     }
                 },

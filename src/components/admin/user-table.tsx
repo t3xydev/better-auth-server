@@ -14,7 +14,22 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table"
-import type { AdminUserRow } from "@/lib/actions/admin-users"
+import type { AdminUserListRow } from "@/lib/actions/admin-users"
+
+function SlugBadges({ slugs }: { slugs: string[] }) {
+    if (slugs.length === 0) {
+        return <span className="text-muted-foreground text-sm">—</span>
+    }
+    return (
+        <span className="flex flex-wrap gap-1">
+            {slugs.map((slug) => (
+                <Badge key={slug} variant="outline">
+                    {slug}
+                </Badge>
+            ))}
+        </span>
+    )
+}
 
 export function UserTable({
     users,
@@ -23,7 +38,7 @@ export function UserTable({
     page,
     pageSize
 }: {
-    users: AdminUserRow[]
+    users: AdminUserListRow[]
     total: number
     query: string
     page: number
@@ -85,6 +100,8 @@ export function UserTable({
                             <TableHead>Name</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Privilege</TableHead>
+                            <TableHead>Roles</TableHead>
+                            <TableHead>Groups</TableHead>
                             <TableHead>Created</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -110,6 +127,12 @@ export function UserTable({
                                     >
                                         {user.role || "user"}
                                     </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <SlugBadges slugs={user.roles} />
+                                </TableCell>
+                                <TableCell>
+                                    <SlugBadges slugs={user.groups} />
                                 </TableCell>
                                 <TableCell>
                                     {new Date(

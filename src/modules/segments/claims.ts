@@ -10,7 +10,8 @@ export async function segmentClaimsForUser(
         const segments = await getUserSegments(user.id, user.role)
         return {
             roles: uniqueSlugs(parsePrivilegeRoles(user.role), segments.roles),
-            groups: segments.groups
+            groups: segments.groups,
+            permissions: segments.permissions
         }
     } catch {
         const roles = parsePrivilegeRoles(user.role)

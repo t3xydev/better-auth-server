@@ -8,6 +8,7 @@ import {
     listGroupIdsForUser,
     listGroups,
     listRoleIdsForUser,
+    listSegmentBadgesForUsers,
     listSegmentRoles,
     setUserSegmentRoles,
     setUserGroups as storeSetUserGroups
@@ -33,11 +34,16 @@ export type AdminUserRow = {
     createdAt: Date
 }
 
+export type AdminUserListRow = AdminUserRow & {
+    roles: string[]
+    groups: string[]
+}
+
 export async function listAdminUsers(input?: {
     search?: string
     limit?: number
     offset?: number
-}): Promise<{ users: AdminUserRow[]; total: number }> {
+}): Promise<{ users: AdminUserListRow[]; total: number }> {
     await requireAdmin()
     const search = input?.search?.trim()
     const result = await auth.api.listUsers({
@@ -56,8 +62,14 @@ export async function listAdminUsers(input?: {
                 : {})
         }
     })
+    const users = (result.users ?? []) as AdminUserRow[]
+    const badges = await listSegmentBadgesForUsers(users.map((user) => user.id))
     return {
-        users: (result.users ?? []) as AdminUserRow[],
+        users: users.map((user) => ({
+            ...user,
+            roles: badges.get(user.id)?.roles ?? [],
+            groups: badges.get(user.id)?.groups ?? []
+        })),
         total: result.total ?? 0
     }
 }

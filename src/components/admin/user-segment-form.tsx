@@ -133,6 +133,11 @@ export function UserSegmentForm({
                                 <span className="ml-2 font-mono text-muted-foreground text-xs">
                                     {role.slug}
                                 </span>
+                                {role.permissions.length > 0 ? (
+                                    <span className="mt-0.5 block text-muted-foreground text-xs">
+                                        {role.permissions.join(", ")}
+                                    </span>
+                                ) : null}
                                 {role.description ? (
                                     <span className="mt-0.5 block text-muted-foreground text-xs">
                                         {role.description}

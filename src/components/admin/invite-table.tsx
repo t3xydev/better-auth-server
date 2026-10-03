@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { Ban, Check, Copy, Link2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
@@ -22,11 +22,13 @@ import {
     TableCell,
     TableHead,
     TableHeader,
-    TableRow,
+    TableRow
 } from "@/components/ui/table"
 import { cancelInvite, type InviteRow } from "@/lib/actions/admin-invites"
 
-function statusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+function statusVariant(
+    status: string
+): "default" | "secondary" | "destructive" | "outline" {
     switch (status) {
         case "pending":
             return "default"
@@ -47,7 +49,7 @@ function inviteLink(baseUrl: string, token: string) {
 
 export function InviteTable({
     invites,
-    inviteBaseUrl,
+    inviteBaseUrl
 }: {
     invites: InviteRow[]
     inviteBaseUrl: string
@@ -83,14 +85,18 @@ export function InviteTable({
                 setCancelTarget(null)
                 router.refresh()
             } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Failed to cancel invite")
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to cancel invite"
+                )
             }
         })
     }
 
     if (invites.length === 0) {
         return (
-            <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground text-sm">
                 No invites yet. Create one to get started.
             </p>
         )
@@ -104,10 +110,13 @@ export function InviteTable({
                         <TableRow>
                             <TableHead>Email</TableHead>
                             <TableHead>Role</TableHead>
+                            <TableHead>Catalog</TableHead>
                             <TableHead>Uses</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Expires</TableHead>
-                            <TableHead className="w-48 text-right">Actions</TableHead>
+                            <TableHead className="w-48 text-right">
+                                Actions
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -118,16 +127,53 @@ export function InviteTable({
                                 "Public"
                             return (
                                 <TableRow key={invite.id}>
-                                    <TableCell className="font-medium">{email}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {email}
+                                    </TableCell>
                                     <TableCell>{invite.role}</TableCell>
+                                    <TableCell>
+                                        <div className="flex max-w-56 flex-wrap gap-1">
+                                            {invite.catalogRoles.map((role) => (
+                                                <Badge
+                                                    key={role.id}
+                                                    variant="outline"
+                                                >
+                                                    {role.slug}
+                                                </Badge>
+                                            ))}
+                                            {invite.catalogGroups.map(
+                                                (group) => (
+                                                    <Badge
+                                                        key={group.id}
+                                                        variant="secondary"
+                                                    >
+                                                        {group.slug}
+                                                    </Badge>
+                                                )
+                                            )}
+                                            {invite.catalogRoles.length === 0 &&
+                                            invite.catalogGroups.length ===
+                                                0 ? (
+                                                <span className="text-muted-foreground">
+                                                    —
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </TableCell>
                                     <TableCell>{invite.maxUses}</TableCell>
                                     <TableCell>
-                                        <Badge variant={statusVariant(invite.status)}>
+                                        <Badge
+                                            variant={statusVariant(
+                                                invite.status
+                                            )}
+                                        >
                                             {invite.status}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
-                                        {new Date(invite.expiresAt).toLocaleString()}
+                                        {new Date(
+                                            invite.expiresAt
+                                        ).toLocaleString()}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {invite.status === "pending" ? (
@@ -148,7 +194,9 @@ export function InviteTable({
                                                     variant="ghost"
                                                     size="sm"
                                                     disabled={isPending}
-                                                    onClick={() => setCancelTarget(invite)}
+                                                    onClick={() =>
+                                                        setCancelTarget(invite)
+                                                    }
                                                 >
                                                     <Ban className="size-4" />
                                                     Cancel
@@ -187,7 +235,11 @@ export function InviteTable({
                     </DialogHeader>
                     {linkUrl ? (
                         <div className="flex gap-2">
-                            <Input readOnly value={linkUrl} className="font-mono text-xs" />
+                            <Input
+                                readOnly
+                                value={linkUrl}
+                                className="font-mono text-xs"
+                            />
                             <Button
                                 type="button"
                                 variant="outline"
@@ -203,7 +255,9 @@ export function InviteTable({
                         </div>
                     ) : null}
                     <DialogFooter>
-                        <Button onClick={() => setLinkTarget(null)}>Done</Button>
+                        <Button onClick={() => setLinkTarget(null)}>
+                            Done
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

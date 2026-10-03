@@ -14,8 +14,8 @@ Organizations (`NEXT_PUBLIC_ORGANIZATIONS_ENABLED`) remain optional tenants. The
 | Layer | Where | What it is |
 |---|---|---|
 | Privilege | `users.role` | `admin` or `user`. Required for the admin panel. Invites still assign only these two. |
-| Catalog roles | `segment_roles` + membership | Operator-created slugs such as `beta` or `staff`. Many per user. |
-| Groups | `groups` + membership | Overlapping cohorts such as `early-access`. Many per user. |
+| Catalog roles | `segment_roles` + membership | Operator-created slugs such as `beta` or `staff`. Many per user. Each role can grant permissions from the app allowlist. |
+| Groups | `groups` + membership | Overlapping cohorts such as `early-access`. Many per user. Groups do not grant permissions. |
 
 Slugs are lowercase kebab-case (`^[a-z][a-z0-9-]{0,62}$`). **`admin` and `user` are reserved** so a catalog entry cannot impersonate privilege.
 
@@ -23,10 +23,10 @@ Slugs are lowercase kebab-case (`^[a-z][a-z0-9-]{0,62}$`). **`admin` and `user` 
 
 With an admin session:
 
-1. **Roles** (`/admin/roles`) and **Groups** (`/admin/groups`) — create, rename, delete (delete is blocked while members are assigned; slug is immutable after create).
-2. **Users** (`/admin/users`) — search, open a user, set privilege, assign catalog roles and groups.
+1. **Roles** (`/admin/roles`) and **Groups** (`/admin/groups`) — create, rename, delete. Open a row to edit it, set role permissions, and add or remove members. Deleting a role or group removes its memberships. Slug is immutable after create.
+2. **Users** (`/admin/users`) — search, see assigned slugs, open a user, set privilege, assign catalog roles and groups.
 
-You cannot remove your own admin privilege from the user detail page.
+You cannot remove your own admin privilege from the user detail page. Catalog permissions do not grant access to this panel.
 
 The first admin can still be created with DevTools or:
 
@@ -41,26 +41,30 @@ Access tokens, ID tokens, and UserInfo include:
 ```json
 {
   "roles": ["user", "beta"],
-  "groups": ["early-access"]
+  "groups": ["early-access"],
+  "permissions": ["app:access"]
 }
 ```
 
-`roles` is the privilege value plus catalog role slugs (unique). `groups` is catalog group slugs. These are identity attributes (no extra OAuth scope), unlike paid [entitlements](/docs/framework/billing).
+`roles` is the privilege value plus catalog role slugs (unique). `groups` is catalog group slugs. `permissions` is the allowlisted keys granted by the user's catalog roles (unique). Unknown keys stored on a role are ignored. Admin privilege does not add permissions. These are identity attributes (no extra OAuth scope), unlike paid [entitlements](/docs/framework/billing).
 
-`GET /api/auth/segments/me` (session) returns `{ privilegeRole, roles, groups }` for first-party UI.
+`GET /api/auth/segments/me` (session) returns `{ privilegeRole, roles, groups, permissions }` for first-party UI.
 
 ## Gating in this app
 
 ```ts
-import { userHasRole, userInGroup } from "@/modules/segments"
+import { requirePermission, userHasRole, userInGroup } from "@/modules/segments"
 
 await userHasRole(userId, "beta")
 await userInGroup(userId, "early-access")
+await requirePermission(userId, "app:access")
 ```
 
-Those helpers check **catalog** slugs only. Admin-panel access stays `session.user.role === "admin"`.
+`userHasRole` and `userInGroup` check **catalog** slugs only. `requirePermission` throws when none of the user's catalog roles grant that key. Admin-panel access stays `session.user.role === "admin"`.
 
-OAuth / OIDC clients should read `roles` and `groups` from UserInfo (or the access token) and gate in the client app.
+Existing pages stay open. Call `requirePermission` from a product route when that route should be limited to a role. Add keys in `src/modules/segments/permissions.ts`. The starter allowlist is `app:access` and `directory:read`.
+
+OAuth / OIDC clients should read `roles`, `groups`, and `permissions` from UserInfo (or the access token) and gate in the client app.
 
 ## PostHog feature flags
 
@@ -71,6 +75,7 @@ When analytics is enabled, identify sets person properties:
 | `privilege_role` | `admin` or `user` |
 | `roles` | Array: privilege + catalog role slugs |
 | `groups` | Array of group slugs |
+| `permissions` | Array of allowlisted permission keys |
 
 Create a PostHog feature flag whose release condition matches a person property, for example `groups` contains `beta`, or `roles` contains `staff`. There is no in-app flag table — targeting lives in PostHog.
 

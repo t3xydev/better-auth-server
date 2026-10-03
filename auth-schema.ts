@@ -322,6 +322,7 @@ export const segmentRoles = pgTable("segment_roles", {
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
+  permissions: text("permissions").array(),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });
@@ -378,6 +379,16 @@ export const groupMembers = pgTable(
     index("groupMembers_groupId_idx").on(table.groupId),
   ],
 );
+
+export const inviteSegmentGrants = pgTable("invite_segment_grants", {
+  id: text("id").primaryKey(),
+  inviteId: text("invite_id")
+    .notNull()
+    .unique()
+    .references(() => invites.id, { onDelete: "cascade" }),
+  roleIds: text("role_ids").array().notNull(),
+  groupIds: text("group_ids").array().notNull(),
+});
 
 export const jwkss = pgTable("jwkss", {
   id: text("id").primaryKey(),
@@ -700,6 +711,7 @@ export const invitesRelations = relations(invites, ({ one, many }) => ({
     references: [users.id],
   }),
   inviteUses: many(inviteUses),
+  inviteSegmentGrants: one(inviteSegmentGrants),
 }));
 
 export const inviteUsesRelations = relations(inviteUses, ({ one }) => ({
@@ -782,6 +794,16 @@ export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
     references: [groups.id],
   }),
 }));
+
+export const inviteSegmentGrantsRelations = relations(
+  inviteSegmentGrants,
+  ({ one }) => ({
+    invites: one(invites, {
+      fields: [inviteSegmentGrants.inviteId],
+      references: [invites.id],
+    }),
+  }),
+);
 
 export const oauthClientsRelations = relations(oauthClients, ({ one, many }) => ({
   users: one(users, {
