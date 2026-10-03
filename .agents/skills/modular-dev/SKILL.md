@@ -71,8 +71,8 @@ If the branch layout from [`eject-and-follow`](../eject-and-follow/SKILL.md) is 
 
 - Product work → `main` (and feature branches off it)
 - Starter line → `dev`
-- Upstream refresh → `kit/main` (no_push) → align `dev`, then selective merge via `kit/sync/*`
-- On conflict in a wiring file: restore thin imports; keep module bodies from the product side
+- Upstream refresh → `kit/main` (no_push) → align `dev`, then suggest commits and integrations before applying (see [`eject-and-follow`](../eject-and-follow/SKILL.md)). The product may skip or adapt any suggestion.
+- On conflict in a wiring file: restore thin imports; keep module bodies from the product side. If the user wants the edit in the kit file anyway, do that and note the hunks that will conflict next sync.
 
 ## Anti-patterns
 
