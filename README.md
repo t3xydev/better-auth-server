@@ -131,10 +131,12 @@ Synced targets (Cloudflare Containers, Railway, Dokploy) live in [`deploy/config
 pnpm deploy:sync
 ```
 
-| Setting | Classic hosts (Render, Fly, …) | Containers (Railway / Dokploy / CF) |
-|---|---|---|
-| **Build** | `pnpm build` | Image: `pnpm build` |
-| **Start** | `pnpm start` | `pnpm start` |
+| Setting | Classic hosts (Render, Fly, …) | Railway / Dokploy | Cloudflare Containers |
+|---|---|---|---|
+| **Build** | `pnpm build` | Pull `ghcr.io/<owner>/<repo>:latest` | Image: `pnpm build` |
+| **Start** | `pnpm start` | `pnpm start` (image CMD) | `pnpm start` |
+
+A version-bump PR publishes the semver tag. A GitHub Release from `main` also moves `:latest`, which Railway (image auto-updates) and Dokploy (`pull_policy: always`) fetch.
 
 `pnpm start` and `pnpm dev` apply pending migrations before the server listens (`DATABASE_URL` required at **start**). Platform notes → [docs/framework/deployment.mdx](docs/framework/deployment.mdx).
 

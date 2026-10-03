@@ -25,8 +25,8 @@ Do **not** revive `railway.toml` / `railway.json` — Railway Config as Code is 
 
 | Platform | Artifacts | How to deploy |
 |----------|-----------|----------------|
-| Railway | `.railway/railway.ts` + `Dockerfile` | `railway link` → `railway config plan` → `railway config apply`; set secrets; deploy |
-| Dokploy | `docker-compose.yml` + `Dockerfile` | Compose path `./docker-compose.yml`; set `dokploy.domain` first |
+| Railway | `.railway/railway.ts` | `railway link` → `railway config plan` → `railway config apply`; service pulls `releaseImage` (`:latest`); turn on image auto-updates |
+| Dokploy | `docker-compose.yml` | Compose path `./docker-compose.yml`; pulls the same image (`pull_policy: always`); set `dokploy.domain` first |
 | Cloudflare Containers (default) | `wrangler.jsonc` + `Dockerfile` + `deploy/cloudflare/container-worker.ts` | `pnpm cf:deploy`; set required secrets with `wrangler secret put` |
 | Cloudflare Workers | OpenNext `wrangler.jsonc` + `open-next.config.ts` | Set `cloudflare.runtime: "workers"`, sync, install OpenNext deps |
 
@@ -35,7 +35,8 @@ Do **not** revive `railway.toml` / `railway.json` — Railway Config as Code is 
 - `port`, `healthcheckPath`, `healthcheckTimeout`, `buildCommand`, `migrateCommand`, `startCommand`
 - `containerStartCommand` — migrate then start (containers need `DATABASE_URL` at **start**)
 - `requiredEnv` — `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-- `railway.*` — IaC project/service/repo/region names for `.railway/railway.ts`
+- `releaseImage` — GHCR repo derived from `railway.githubRepo`, tag `latest` (Railway + Dokploy pull this; published by `.github/workflows/release-image.yml`)
+- `railway.*` — IaC project/service/repo/region names for `.railway/railway.ts`. `githubRepo` is the GHCR path; `branch` is where Releases are cut. The service does not build from git.
 - `cloudflare.runtime` — `"containers"` (default) or `"workers"`
 - `cloudflare.instanceType` — Containers size (`basic` default in this kit; Wrangler’s omit-default is `lite`)
 - `dokploy.domain` / `dokploy.routerName` — Traefik Host rule
@@ -44,7 +45,8 @@ Do **not** revive `railway.toml` / `railway.json` — Railway Config as Code is 
 
 - Healthcheck path must return **2xx** for deploy success. `/api/health` is liveness (always 2xx when the process is up); use `/api/health?ready=1` for DB readiness.
 - Do **not** set a custom `PORT` — Railway injects it for healthchecks and public networking. The Dockerfile default (`3000`) is only for non-Railway hosts.
-- After syncing IaC, run `railway config plan` / `apply`. Clear any leftover dashboard overrides (wrong health path, Railpack build command, sleep mode).
+- After syncing IaC, run `railway config plan` / `apply`. Clear any leftover dashboard overrides (wrong health path, Railpack or Dockerfile build command, sleep mode). Turn on image auto-updates so `:latest` digest changes roll the service. A private GHCR package needs a Pro-plan registry credential (`read:packages`).
+- Version-bump PRs publish `:<version>` only. A non-prerelease GitHub Release from `main` also moves `:latest`. Cloudflare Containers still builds `Dockerfile`.
 - Runtime image must include `source.config.ts`, a **writable** `.source` (fumadocs-mdx recompiles `source.config.mjs` at `next start`), and `docs/framework`.
 
 ## Cloudflare switch
