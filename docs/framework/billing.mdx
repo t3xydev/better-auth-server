@@ -62,18 +62,23 @@ USDC checkout is not production-ready until those secrets, a webhook on your Zon
 | `POST /api/auth/billing/checkout` | Session | Hosted checkout URL (`priceKey` + `provider`) |
 | `POST /api/auth/billing/portal` | Session | Card customer portal (live Stripe only) |
 | `POST /api/auth/billing/cancel` | Session | Cancel with the owning processor |
-| `POST /api/auth/billing/webhook` | Stripe | Canonical card subscription sync |
+| `POST /api/auth/stripe/webhook` | Stripe plugin | Canonical card subscription sync |
+| `POST /api/auth/billing/webhook` | Stripe | Still updates shared entitlements if an older endpoint is left in place |
 | `POST /api/auth/billing/webhook/zoneless` | Zoneless | Canonical USDC subscription sync |
 
 v1 allows **one concurrent active / trialing / past due subscription per user**. Switching payment method requires the current subscription to cancel or reach period end first.
 
 ## Webhooks
 
+Card checkout, the customer portal, and card webhooks go through the Stripe plugin. That plugin keeps its own customer and subscription rows. Entitlements still come from the shared billing tables, which the Zoneless adapter writes as well.
+
 Point a Stripe webhook endpoint at:
 
 ```text
-{BETTER_AUTH_URL}/api/auth/billing/webhook
+{BETTER_AUTH_URL}/api/auth/stripe/webhook
 ```
+
+`POST /api/auth/billing/webhook` still accepts the same Stripe events and updates those shared tables. It does not update the plugin's own subscription row. Use `/api/auth/stripe/webhook` so both stay in sync.
 
 Point a Zoneless webhook endpoint at:
 
@@ -90,7 +95,7 @@ Subscribe at least:
 - `invoice.paid`
 - `invoice.payment_failed`
 
-Use the signing secrets as `STRIPE_WEBHOOK_SECRET` and `ZONELESS_WEBHOOK_SECRET`. Locally, the Stripe CLI can forward events to the Stripe path. On your Zoneless instance, register `{BETTER_AUTH_URL}/api/auth/billing/webhook/zoneless` for the same event types. Duplicate deliveries are ignored by recorded `event.id`.
+Use the signing secrets as `STRIPE_WEBHOOK_SECRET` and `ZONELESS_WEBHOOK_SECRET`. Locally, the Stripe CLI can forward events to `/api/auth/stripe/webhook`. On your Zoneless instance, register `{BETTER_AUTH_URL}/api/auth/billing/webhook/zoneless` for the same event types. Duplicate deliveries are ignored by recorded `event.id`.
 
 The success redirect is not the source of truth. Entitlements are granted from verified webhooks (or, in `next dev` mock, from the checkout handler itself).
 
@@ -128,4 +133,4 @@ USDC amounts are the plan price in minor units; tax handling for that processor 
 
 ## Later processors
 
-Subscriptions and entitlements are stored in processor-agnostic tables (`billing_customers`, `billing_subscriptions`, `billing_entitlements`). Card and USDC adapters write the same rows. Organization / seat billing is not in this release.
+Subscriptions and entitlements are stored in processor-agnostic tables (`billing_customers`, `billing_subscriptions`, `billing_entitlements`). The card adapter is the Stripe plugin; USDC stays the Zoneless adapter. Both write the same entitlement rows. The plugin's `user.stripeCustomerId` and `subscription` table are card-only and are not what client apps read. Organization / seat billing is not in this release.

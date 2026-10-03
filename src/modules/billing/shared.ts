@@ -72,3 +72,23 @@ export function priceIdFromSubscription(
     if (!price) return null
     return typeof price === "string" ? price : price.id
 }
+
+/** Fields the card adapter writes into the shared billing tables. */
+export function billingMirrorFromStripeSubscription(
+    subscription: StripeShapedSubscription,
+    fallbackUserId?: string | null
+) {
+    const period = periodFromSubscription(subscription)
+    return {
+        userId: subscription.metadata?.userId || fallbackUserId || null,
+        providerCustomerId: idOf(subscription.customer),
+        providerSubscriptionId: subscription.id,
+        providerPriceId: priceIdFromSubscription(subscription),
+        status: subscription.status,
+        currentPeriodStart: period.start,
+        currentPeriodEnd: period.end,
+        cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
+        canceledAt: unixToDate(subscription.canceled_at),
+        endedAt: unixToDate(subscription.ended_at)
+    }
+}

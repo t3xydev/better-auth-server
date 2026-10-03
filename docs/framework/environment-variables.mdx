@@ -103,7 +103,7 @@ Opt-in account-scoped subscriptions. See [billing](/docs/framework/billing). Sig
 | `NEXT_PUBLIC_BILLING_ENABLED` | Set to `"true"` to show `/account/billing` and `/pricing` and to emit entitlement claims. In `next dev`, on unless `"false"`. | `false` (production) |
 | `BILLING_PROVIDER` | Default checkout toggle (`stripe` card or `zoneless` USDC). Not exclusive — both processors can be configured. | `stripe` |
 | `STRIPE_SECRET_KEY` | Stripe restricted API key (`rk_…` preferred) or secret key. Server-only. | None |
-| `STRIPE_WEBHOOK_SECRET` | Signing secret for `{BETTER_AUTH_URL}/api/auth/billing/webhook`. | None |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for `{BETTER_AUTH_URL}/api/auth/stripe/webhook`. | None |
 | `BILLING_STRIPE_PRICE_PREMIUM_MONTHLY` | Stripe Price ID for the Premium monthly plan. | None |
 | `BILLING_STRIPE_PRICE_PREMIUM_YEARLY` | Stripe Price ID for the Premium yearly plan. | None |
 | `ZONELESS_API_KEY` | Zoneless secret API key for your instance. Server-only. | None |

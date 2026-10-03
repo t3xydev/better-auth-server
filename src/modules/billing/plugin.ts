@@ -303,7 +303,8 @@ export function billing() {
                             userId: user.id,
                             email: user.email,
                             name: user.name,
-                            priceKey: ctx.body.priceKey
+                            priceKey: ctx.body.priceKey,
+                            headers: ctx.request?.headers
                         })
                         return ctx.json({ url })
                     } catch (error) {
@@ -349,9 +350,10 @@ export function billing() {
                         if (!processor.createPortalUrl) {
                             throw new Error("No billing portal for this method")
                         }
-                        const url = await processor.createPortalUrl(
-                            ctx.context.session.user.id
-                        )
+                        const url = await processor.createPortalUrl({
+                            userId: ctx.context.session.user.id,
+                            headers: ctx.request?.headers
+                        })
                         return ctx.json({ url })
                     } catch (error) {
                         throw new APIError("BAD_REQUEST", {
@@ -418,7 +420,8 @@ export function billing() {
                     metadata: {
                         openapi: {
                             operationId: "handleBillingWebhook",
-                            description: "Stripe billing webhook"
+                            description:
+                                "Stripe billing webhook. Updates shared entitlements. Prefer /stripe/webhook so the Stripe plugin subscription row stays in sync."
                         }
                     },
                     cloneRequest: true,

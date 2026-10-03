@@ -5,6 +5,12 @@ export type CheckoutInput = {
     email: string
     name?: string | null
     priceKey: string
+    headers?: Headers
+}
+
+export type PortalInput = {
+    userId: string
+    headers?: Headers
 }
 
 export type BillingProcessor = {
@@ -12,7 +18,7 @@ export type BillingProcessor = {
     label: string
     configured: () => boolean
     createCheckoutUrl: (input: CheckoutInput) => Promise<string>
-    createPortalUrl?: (userId: string) => Promise<string>
+    createPortalUrl?: (input: PortalInput) => Promise<string>
     cancel?: (input: { userId: string; atPeriodEnd: boolean }) => Promise<void>
 }
 

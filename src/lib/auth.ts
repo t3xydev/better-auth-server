@@ -25,6 +25,7 @@ import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
 import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
 import { billing } from "@/modules/billing/plugin"
+import { stripeAuthPlugin } from "@/modules/billing/stripe-plugin"
 import { captureOAuthOutcome } from "@/modules/observability/oauth-capture"
 import { segmentClaimsForUser } from "@/modules/segments/claims"
 import { segments } from "@/modules/segments/plugin"
@@ -51,6 +52,8 @@ type FixErrorCodes<T> = Omit<T, "$ERROR_CODES"> &
     Pick<BetterAuthPlugin, "$ERROR_CODES">
 
 const ALLOWED_SCOPES = PROVIDER_SCOPES
+
+const cardBillingPlugin = stripeAuthPlugin()
 
 const authOrigin = (
     process.env.BETTER_AUTH_URL || "http://localhost:3000"
@@ -272,6 +275,7 @@ export const auth = betterAuth({
         nostrLink(),
         multiSession(),
         billing(),
+        ...(cardBillingPlugin ? [cardBillingPlugin] : []),
         segments(),
         dash(),
         sentinel(),

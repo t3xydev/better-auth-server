@@ -1,20 +1,23 @@
-import { randomBytes } from "node:crypto"
+import { eq } from "drizzle-orm"
 import Stripe from "stripe"
 
+import { db } from "@/database/db"
+import { users } from "@/database/schema"
 import {
     findPrice,
-    getTrialDays,
     isPlaceholderPriceId,
     priceIdForProcessor
 } from "../catalog"
 import { isMockProviderId, processorLabel, stripeConfigured } from "../enabled"
-import type { BillingProcessor, CheckoutInput } from "../processors"
+import type {
+    BillingProcessor,
+    CheckoutInput,
+    PortalInput
+} from "../processors"
 import {
     authOrigin,
-    idOf,
-    periodFromSubscription,
-    priceIdFromSubscription,
-    unixToDate
+    billingMirrorFromStripeSubscription,
+    idOf
 } from "../shared"
 import {
     assertCanStartCheckout,
@@ -24,9 +27,9 @@ import {
     recordWebhookEvent,
     upsertCustomer,
     upsertSubscriptionFromProvider,
-    userHasSubscriptionHistory,
     webhookEventSeen
 } from "../store"
+import { annualForInterval } from "../stripe-plans"
 
 const PROVIDER = "stripe" as const
 
@@ -43,35 +46,40 @@ export function getStripe() {
     return stripeClient
 }
 
-function randomLetters(length = 8) {
-    const alphabet = "abcdefghijklmnopqrstuvwxyz"
-    return Array.from(randomBytes(length), (byte) => alphabet[byte % 26]).join(
-        ""
-    )
+async function reuseStripeCustomerOnUser(userId: string) {
+    const existing = await getCustomerByUserId(userId, PROVIDER)
+    if (!existing || isMockProviderId(existing.providerCustomerId)) return
+    await db
+        .update(users)
+        .set({ stripeCustomerId: existing.providerCustomerId })
+        .where(eq(users.id, userId))
 }
 
-export async function ensureStripeCustomer(input: {
-    userId: string
-    email: string
-    name?: string | null
-}) {
-    const existing = await getCustomerByUserId(input.userId, PROVIDER)
-    if (existing && !isMockProviderId(existing.providerCustomerId)) {
-        return existing.providerCustomerId
-    }
+type CardSubscriptionApi = {
+    upgradeSubscription: (input: {
+        body: {
+            plan: string
+            annual: boolean
+            successUrl: string
+            cancelUrl: string
+            disableRedirect: true
+        }
+        headers: Headers
+        query: { disableCookieCache: true }
+    }) => Promise<{ url?: string | null }>
+    createBillingPortal: (input: {
+        body: {
+            returnUrl: string
+            disableRedirect: true
+        }
+        headers: Headers
+        query: { disableCookieCache: true }
+    }) => Promise<{ url?: string | null }>
+}
 
-    const stripe = getStripe()
-    const customer = await stripe.customers.create({
-        email: input.email,
-        name: input.name || undefined,
-        metadata: { userId: input.userId }
-    })
-    await upsertCustomer({
-        userId: input.userId,
-        provider: PROVIDER,
-        providerCustomerId: customer.id
-    })
-    return customer.id
+async function cardSubscriptionApi() {
+    const { auth } = await import("@/lib/auth")
+    return auth.api as typeof auth.api & CardSubscriptionApi
 }
 
 export async function createCheckoutUrl(input: CheckoutInput) {
@@ -88,51 +96,57 @@ export async function createCheckoutUrl(input: CheckoutInput) {
             "This plan is a development placeholder. Set Stripe Price IDs to enable checkout."
         )
     }
+    if (!input.headers) {
+        throw new Error("Missing session for card checkout")
+    }
     await assertCanStartCheckout(input.userId)
+    await reuseStripeCustomerOnUser(input.userId)
 
-    const customerId = await ensureStripeCustomer(input)
-    const trialDays = getTrialDays()
-    const hadSubscription = await userHasSubscriptionHistory(input.userId)
-    const stripe = getStripe()
     const origin = authOrigin()
-    const session = await stripe.checkout.sessions.create({
-        mode: "subscription",
-        customer: customerId,
-        client_reference_id: input.userId,
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${origin}/account/billing?checkout=success`,
-        cancel_url: `${origin}/account/billing?checkout=canceled`,
-        metadata: { userId: input.userId },
-        subscription_data: {
-            metadata: { userId: input.userId },
-            ...(!hadSubscription && trialDays
-                ? { trial_period_days: trialDays }
-                : {})
+    const api = await cardSubscriptionApi()
+    const result = await api.upgradeSubscription({
+        body: {
+            plan: matched.product.key,
+            annual: annualForInterval(matched.price.interval),
+            successUrl: `${origin}/account/billing?checkout=success`,
+            cancelUrl: `${origin}/account/billing?checkout=canceled`,
+            disableRedirect: true
         },
-        integration_identifier: `idp-billing-${randomLetters()}`
+        headers: input.headers,
+        query: { disableCookieCache: true }
     })
-
-    if (!session.url) {
+    if (!result.url) {
         throw new Error("Stripe did not return a checkout URL")
     }
-    return session.url
+    return result.url
 }
 
-export async function createPortalUrl(userId: string) {
+export async function createPortalUrl(input: PortalInput) {
     if (!stripeConfigured()) {
         throw new Error("Card billing is not configured")
     }
-    const customer = await getCustomerByUserId(userId, PROVIDER)
+    if (!input.headers) {
+        throw new Error("Missing session for the billing portal")
+    }
+    const customer = await getCustomerByUserId(input.userId, PROVIDER)
     if (!customer || isMockProviderId(customer.providerCustomerId)) {
         throw new Error("No billing customer")
     }
-    const stripe = getStripe()
-    const origin = authOrigin()
-    const session = await stripe.billingPortal.sessions.create({
-        customer: customer.providerCustomerId,
-        return_url: `${origin}/account/billing`
+    await reuseStripeCustomerOnUser(input.userId)
+
+    const api = await cardSubscriptionApi()
+    const result = await api.createBillingPortal({
+        body: {
+            returnUrl: `${authOrigin()}/account/billing`,
+            disableRedirect: true
+        },
+        headers: input.headers,
+        query: { disableCookieCache: true }
     })
-    return session.url
+    if (!result.url) {
+        throw new Error("Stripe did not return a billing portal URL")
+    }
+    return result.url
 }
 
 async function cancelStripeSubscription(input: {
@@ -156,39 +170,43 @@ async function cancelStripeSubscription(input: {
     await stripe.subscriptions.cancel(open.providerSubscriptionId)
 }
 
-async function syncStripeSubscription(
+export async function syncStripeSubscription(
     subscription: Stripe.Subscription,
     fallbackUserId?: string | null
 ) {
-    const customerId = idOf(subscription.customer)
-    const metadataUserId = subscription.metadata?.userId || fallbackUserId
-    let userId = metadataUserId || null
-    if (!userId && customerId) {
-        const linked = await getCustomerByProviderId(PROVIDER, customerId)
+    const mirrored = billingMirrorFromStripeSubscription(
+        subscription,
+        fallbackUserId
+    )
+    let userId = mirrored.userId
+    if (!userId && mirrored.providerCustomerId) {
+        const linked = await getCustomerByProviderId(
+            PROVIDER,
+            mirrored.providerCustomerId
+        )
         userId = linked?.userId ?? null
     }
     if (!userId) return
 
-    if (customerId) {
+    if (mirrored.providerCustomerId) {
         await upsertCustomer({
             userId,
             provider: PROVIDER,
-            providerCustomerId: customerId
+            providerCustomerId: mirrored.providerCustomerId
         })
     }
 
-    const period = periodFromSubscription(subscription)
     await upsertSubscriptionFromProvider({
         userId,
         provider: PROVIDER,
-        providerSubscriptionId: subscription.id,
-        providerPriceId: priceIdFromSubscription(subscription),
-        status: subscription.status,
-        currentPeriodStart: period.start,
-        currentPeriodEnd: period.end,
-        cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
-        canceledAt: unixToDate(subscription.canceled_at),
-        endedAt: unixToDate(subscription.ended_at)
+        providerSubscriptionId: mirrored.providerSubscriptionId,
+        providerPriceId: mirrored.providerPriceId,
+        status: mirrored.status,
+        currentPeriodStart: mirrored.currentPeriodStart,
+        currentPeriodEnd: mirrored.currentPeriodEnd,
+        cancelAtPeriodEnd: mirrored.cancelAtPeriodEnd,
+        canceledAt: mirrored.canceledAt,
+        endedAt: mirrored.endedAt
     })
 }
 

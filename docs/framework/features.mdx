@@ -18,7 +18,7 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking from **Account → Security** |
 | Invitations | `better-invite` | Admin create/list UI, email + public invites, `/invite/activate/[token]` welcome + accept flow — [guide](/docs/framework/invitations). Opt-in invite-only registration via `NEXT_PUBLIC_INVITE_ONLY=true` |
 | Organizations | `organization` | Opt-in via `NEXT_PUBLIC_ORGANIZATIONS_ENABLED=true`. Members, roles, email invites; UI at `/organization/*` and `/account/organizations` |
-| Billing | Account-scoped catalog; card (Stripe) and USDC (Zoneless) | Production: `NEXT_PUBLIC_BILLING_ENABLED=true`. `next dev` shows a placeholder catalog and a Card / USDC mock toggle unless the flag is `"false"`. Users subscribe on this host; client apps read entitlements — [guide](/docs/framework/billing) |
+| Billing | Account-scoped catalog; card via the Stripe plugin, USDC via Zoneless | Production: `NEXT_PUBLIC_BILLING_ENABLED=true`. `next dev` shows a placeholder catalog and a Card / USDC mock toggle unless the flag is `"false"`. Both adapters write the same entitlements. Users subscribe on this host; client apps read entitlements — [guide](/docs/framework/billing) |
 
 ### Planned identity methods
 
