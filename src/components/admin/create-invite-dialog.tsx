@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { Check, Copy, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useId, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { Plus, Copy, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
     Dialog,
     DialogContent,
@@ -13,19 +14,20 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
+    DialogTrigger
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
-    SelectValue,
+    SelectValue
 } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { createInvite } from "@/lib/actions/admin-invites"
+import type { SegmentCatalogItem } from "@/modules/segments/types"
 
 const EXPIRE_PRESETS = [
     { value: "3600", label: "1 hour" },
@@ -35,11 +37,20 @@ const EXPIRE_PRESETS = [
     { value: "5184000", label: "60 days" },
     { value: "7776000", label: "90 days" },
     // Plugin always stores expiresAt; ~100 years stands in for "never"
-    { value: "3153600000", label: "Never" },
+    { value: "3153600000", label: "Never" }
 ] as const
 
-export function CreateInviteDialog() {
+export function CreateInviteDialog({
+    roles,
+    groups
+}: {
+    roles: SegmentCatalogItem[]
+    groups: SegmentCatalogItem[]
+}) {
     const router = useRouter()
+    const emailId = useId()
+    const maxUsesId = useId()
+    const shareNameId = useId()
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [email, setEmail] = useState("")
@@ -47,6 +58,8 @@ export function CreateInviteDialog() {
     const [maxUses, setMaxUses] = useState("1")
     const [expiresIn, setExpiresIn] = useState("3600")
     const [shareInviterName, setShareInviterName] = useState(false)
+    const [roleIds, setRoleIds] = useState<string[]>([])
+    const [groupIds, setGroupIds] = useState<string[]>([])
     const [publicResult, setPublicResult] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
 
@@ -58,6 +71,8 @@ export function CreateInviteDialog() {
         setMaxUses("1")
         setExpiresIn("3600")
         setShareInviterName(false)
+        setRoleIds([])
+        setGroupIds([])
         setPublicResult(null)
         setCopied(false)
     }
@@ -94,6 +109,8 @@ export function CreateInviteDialog() {
                     maxUses: parsedMaxUses,
                     expiresIn: parsedExpiresIn,
                     shareInviterName: isPrivate ? shareInviterName : false,
+                    roleIds,
+                    groupIds
                 })
 
                 if (!result.status) {
@@ -112,7 +129,11 @@ export function CreateInviteDialog() {
                 toast.success("Public invite created")
                 router.refresh()
             } catch (error) {
-                toast.error(error instanceof Error ? error.message : "Failed to create invite")
+                toast.error(
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to create invite"
+                )
             }
         })
     }
@@ -140,26 +161,36 @@ export function CreateInviteDialog() {
                 {publicResult ? (
                     <div className="space-y-3">
                         <div className="flex gap-2">
-                            <Input readOnly value={publicResult} className="font-mono text-xs" />
+                            <Input
+                                readOnly
+                                value={publicResult}
+                                className="font-mono text-xs"
+                            />
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="icon"
                                 onClick={() => copyResult(publicResult)}
                             >
-                                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                                {copied ? (
+                                    <Check className="size-4" />
+                                ) : (
+                                    <Copy className="size-4" />
+                                )}
                             </Button>
                         </div>
                         <DialogFooter>
-                            <Button onClick={() => handleOpenChange(false)}>Done</Button>
+                            <Button onClick={() => handleOpenChange(false)}>
+                                Done
+                            </Button>
                         </DialogFooter>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
                         <div className="space-y-2">
-                            <Label htmlFor="invite-email">Email (optional)</Label>
+                            <Label htmlFor={emailId}>Email (optional)</Label>
                             <Input
-                                id="invite-email"
+                                id={emailId}
                                 type="email"
                                 placeholder="user@example.com"
                                 value={email}
@@ -168,10 +199,12 @@ export function CreateInviteDialog() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Role</Label>
+                            <Label>Privilege</Label>
                             <Select
                                 value={role}
-                                onValueChange={(value) => setRole(value as "user" | "admin")}
+                                onValueChange={(value) =>
+                                    setRole(value as "user" | "admin")
+                                }
                                 disabled={isPending}
                             >
                                 <SelectTrigger className="w-full">
@@ -185,9 +218,9 @@ export function CreateInviteDialog() {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
-                                <Label htmlFor="invite-max-uses">Max uses</Label>
+                                <Label htmlFor={maxUsesId}>Max uses</Label>
                                 <Input
-                                    id="invite-max-uses"
+                                    id={maxUsesId}
                                     type="number"
                                     min={1}
                                     step={1}
@@ -208,7 +241,10 @@ export function CreateInviteDialog() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {EXPIRE_PRESETS.map((preset) => (
-                                            <SelectItem key={preset.value} value={preset.value}>
+                                            <SelectItem
+                                                key={preset.value}
+                                                value={preset.value}
+                                            >
                                                 {preset.label}
                                             </SelectItem>
                                         ))}
@@ -219,21 +255,54 @@ export function CreateInviteDialog() {
                         {isPrivate ? (
                             <div className="flex items-center justify-between gap-4">
                                 <div className="space-y-0.5">
-                                    <Label htmlFor="share-inviter-name">Show your name</Label>
-                                    <p className="text-xs text-muted-foreground">
+                                    <Label htmlFor={shareNameId}>
+                                        Show your name
+                                    </Label>
+                                    <p className="text-muted-foreground text-xs">
                                         Welcome page says who sent the invite
                                     </p>
                                 </div>
                                 <Switch
-                                    id="share-inviter-name"
+                                    id={shareNameId}
                                     checked={shareInviterName}
                                     onCheckedChange={setShareInviterName}
                                     disabled={isPending}
                                 />
                             </div>
                         ) : null}
+                        <CatalogChecks
+                            legend="Catalog roles"
+                            empty="No catalog roles yet."
+                            items={roles}
+                            selected={roleIds}
+                            onToggle={(id) =>
+                                setRoleIds((current) =>
+                                    current.includes(id)
+                                        ? current.filter((item) => item !== id)
+                                        : [...current, id]
+                                )
+                            }
+                            disabled={isPending}
+                        />
+                        <CatalogChecks
+                            legend="Groups"
+                            empty="No groups yet."
+                            items={groups}
+                            selected={groupIds}
+                            onToggle={(id) =>
+                                setGroupIds((current) =>
+                                    current.includes(id)
+                                        ? current.filter((item) => item !== id)
+                                        : [...current, id]
+                                )
+                            }
+                            disabled={isPending}
+                        />
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                            <Button
+                                variant="outline"
+                                onClick={() => handleOpenChange(false)}
+                            >
                                 Cancel
                             </Button>
                             <Button onClick={handleCreate} disabled={isPending}>
@@ -244,5 +313,53 @@ export function CreateInviteDialog() {
                 )}
             </DialogContent>
         </Dialog>
+    )
+}
+
+function CatalogChecks({
+    legend,
+    empty,
+    items,
+    selected,
+    onToggle,
+    disabled
+}: {
+    legend: string
+    empty: string
+    items: SegmentCatalogItem[]
+    selected: string[]
+    onToggle: (id: string) => void
+    disabled: boolean
+}) {
+    return (
+        <fieldset className="space-y-2">
+            <legend className="font-medium text-sm">{legend}</legend>
+            {items.length === 0 ? (
+                <p className="text-muted-foreground text-xs">{empty}</p>
+            ) : (
+                items.map((item) => (
+                    <div
+                        key={item.id}
+                        className="flex items-start gap-3 text-sm"
+                    >
+                        <Checkbox
+                            id={`invite-${legend}-${item.id}`}
+                            checked={selected.includes(item.id)}
+                            onCheckedChange={() => onToggle(item.id)}
+                            disabled={disabled}
+                        />
+                        <Label
+                            htmlFor={`invite-${legend}-${item.id}`}
+                            className="font-normal"
+                        >
+                            <span className="font-medium">{item.name}</span>
+                            <span className="ml-2 font-mono text-muted-foreground text-xs">
+                                {item.slug}
+                            </span>
+                        </Label>
+                    </div>
+                ))
+            )}
+        </fieldset>
     )
 }

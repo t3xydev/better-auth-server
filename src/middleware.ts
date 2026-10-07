@@ -2,7 +2,7 @@ import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
 const authRoutes = ["/auth/sign-in", "/auth/password", "/auth/sign-up"]
-const protectedRoutes = ["/account/settings", "/account/nostr", "/admin"]
+const protectedPrefixes = ["/account", "/admin"]
 
 export async function middleware(request: NextRequest) {
     const sessionCookie = getSessionCookie(request)
@@ -17,7 +17,9 @@ export async function middleware(request: NextRequest) {
 
     if (
         !sessionCookie &&
-        protectedRoutes.some((route) => pathname.startsWith(route))
+        protectedPrefixes.some(
+            (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+        )
     ) {
         const redirectTo = pathname + request.nextUrl.search
         return NextResponse.redirect(
@@ -33,8 +35,8 @@ export const config = {
         "/auth/sign-in",
         "/auth/password",
         "/auth/sign-up",
-        "/account/settings",
-        "/account/nostr",
+        "/account",
+        "/account/:path*",
         "/admin/:path*"
     ]
 }

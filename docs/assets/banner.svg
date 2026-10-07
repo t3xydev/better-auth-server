@@ -1,54 +1,87 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" fill="none" role="img" aria-label="Better Auth Server">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="520" viewBox="0 0 1280 520" fill="none" role="img" aria-label="Better Auth Server, your own OpenID Connect issuer">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="640" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0B1220"/>
-      <stop offset="0.55" stop-color="#101828"/>
-      <stop offset="1" stop-color="#0A3D3A"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1280" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#070B14"/>
+      <stop offset="0.48" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#0A3330"/>
     </linearGradient>
-    <linearGradient id="glow" x1="900" y1="80" x2="1200" y2="520" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2DD4BF" stop-opacity="0.35"/>
+    <linearGradient id="glow" x1="980" y1="40" x2="1240" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DD4BF" stop-opacity="0.28"/>
       <stop offset="1" stop-color="#2DD4BF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="accent" x1="64" y1="180" x2="520" y2="420" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#5EEAD4"/>
-      <stop offset="1" stop-color="#99F6E4"/>
+    <linearGradient id="mark" x1="72" y1="168" x2="136" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#99F6E4"/>
+      <stop offset="1" stop-color="#2DD4BF"/>
     </linearGradient>
-    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M40 0H0V40" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="1"/>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" stroke="#FFFFFF" stroke-opacity="0.035" stroke-width="1"/>
     </pattern>
   </defs>
 
-  <rect width="1280" height="640" fill="url(#bg)"/>
-  <rect width="1280" height="640" fill="url(#grid)"/>
-  <circle cx="1080" cy="180" r="260" fill="url(#glow)"/>
+  <rect width="1280" height="520" fill="url(#bg)"/>
+  <rect width="1280" height="520" fill="url(#grid)"/>
+  <circle cx="1080" cy="260" r="280" fill="url(#glow)"/>
+  <rect x="0" y="0" width="1280" height="4" fill="#2DD4BF"/>
 
-  <!-- mark -->
-  <g transform="translate(96,214)">
-    <rect width="88" height="212" rx="8" fill="url(#accent)"/>
-    <rect x="124" width="88" height="212" rx="8" fill="url(#accent)" fill-opacity="0.55"/>
-    <rect x="62" y="0" width="88" height="70" rx="8" fill="url(#accent)"/>
-    <rect x="62" y="142" width="88" height="70" rx="8" fill="url(#accent)" fill-opacity="0.8"/>
+  <g transform="translate(72,168)">
+    <rect width="28" height="64" rx="6" fill="url(#mark)"/>
+    <rect x="36" width="28" height="64" rx="6" fill="url(#mark)" fill-opacity="0.45"/>
+    <rect x="18" y="0" width="28" height="22" rx="6" fill="url(#mark)"/>
+    <rect x="18" y="42" width="28" height="22" rx="6" fill="url(#mark)" fill-opacity="0.75"/>
   </g>
 
-  <text x="360" y="278" fill="#F8FAFC" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="64" font-weight="700" letter-spacing="-1.5">Better Auth Server</text>
-  <text x="360" y="340" fill="#99F6E4" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="28" font-weight="500">Deploy a production auth server in minutes</text>
+  <text x="168" y="196" fill="#5EEAD4" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="600" letter-spacing="3.2">OPEN IDENTITY SERVER</text>
+  <text x="72" y="268" fill="#F8FAFC" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="58" font-weight="700" letter-spacing="-1.6">Better Auth Server</text>
+  <text x="72" y="318" fill="#CBD5E1" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" font-weight="450">Your OpenID Connect issuer. Apps sign in here.</text>
 
-  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="18" fill="#CBD5E1">
-    <rect x="360" y="390" width="168" height="40" rx="20" fill="#134E4A" fill-opacity="0.55" stroke="#2DD4BF" stroke-opacity="0.35"/>
-    <text x="444" y="416" text-anchor="middle">OAuth / OIDC</text>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="16" font-weight="600" fill="#E2E8F0">
+    <rect x="72" y="356" width="92" height="36" rx="18" fill="#134E4A" fill-opacity="0.7" stroke="#2DD4BF" stroke-opacity="0.4"/>
+    <text x="118" y="379" text-anchor="middle">OIDC</text>
 
-    <rect x="544" y="390" width="132" height="40" rx="20" fill="#134E4A" fill-opacity="0.55" stroke="#2DD4BF" stroke-opacity="0.35"/>
-    <text x="610" y="416" text-anchor="middle">Passkeys</text>
+    <rect x="176" y="356" width="108" height="36" rx="18" fill="#134E4A" fill-opacity="0.7" stroke="#2DD4BF" stroke-opacity="0.4"/>
+    <text x="230" y="379" text-anchor="middle">Nostr</text>
 
-    <rect x="692" y="390" width="100" height="40" rx="20" fill="#134E4A" fill-opacity="0.55" stroke="#2DD4BF" stroke-opacity="0.35"/>
-    <text x="742" y="416" text-anchor="middle">2FA</text>
+    <rect x="296" y="356" width="124" height="36" rx="18" fill="#134E4A" fill-opacity="0.7" stroke="#2DD4BF" stroke-opacity="0.4"/>
+    <text x="358" y="379" text-anchor="middle">Passkeys</text>
 
-    <rect x="808" y="390" width="120" height="40" rx="20" fill="#134E4A" fill-opacity="0.55" stroke="#2DD4BF" stroke-opacity="0.35"/>
-    <text x="868" y="416" text-anchor="middle">Nostr</text>
-
-    <rect x="944" y="390" width="168" height="40" rx="20" fill="#134E4A" fill-opacity="0.55" stroke="#2DD4BF" stroke-opacity="0.35"/>
-    <text x="1028" y="416" text-anchor="middle">Admin panel</text>
+    <rect x="432" y="356" width="118" height="36" rx="18" fill="#134E4A" fill-opacity="0.55" stroke="#94A3B8" stroke-opacity="0.35"/>
+    <text x="491" y="379" text-anchor="middle" fill="#CBD5E1">Wallets</text>
   </g>
 
-  <text x="360" y="520" fill="#64748B" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">Next.js ù PostgreSQL ù Drizzle ù Better Auth</text>
+  <g fill="#64748B" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="16">
+    <text x="72" y="448">Next.js</text>
+    <circle cx="148" cy="443" r="2.5" fill="#2DD4BF"/>
+    <text x="164" y="448">PostgreSQL</text>
+    <circle cx="270" cy="443" r="2.5" fill="#2DD4BF"/>
+    <text x="286" y="448">Drizzle</text>
+    <circle cx="352" cy="443" r="2.5" fill="#2DD4BF"/>
+    <text x="368" y="448">Better Auth</text>
+  </g>
+
+  <g transform="translate(760,118)">
+    <rect width="448" height="284" rx="16" fill="#0B1220" fill-opacity="0.72" stroke="#2DD4BF" stroke-opacity="0.28"/>
+    <circle cx="28" cy="28" r="5" fill="#FB7185"/>
+    <circle cx="46" cy="28" r="5" fill="#FBBF24"/>
+    <circle cx="64" cy="28" r="5" fill="#34D399"/>
+    <text x="88" y="33" fill="#94A3B8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13">openid-configuration</text>
+
+    <text x="28" y="78" fill="#5EEAD4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">GET /.well-known/openid-configuration</text>
+
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15">
+      <text x="28" y="124" fill="#64748B">issuer</text>
+      <text x="168" y="124" fill="#F8FAFC">your host</text>
+
+      <text x="28" y="160" fill="#64748B">authorize</text>
+      <text x="168" y="160" fill="#F8FAFC">/oauth2/authorize</text>
+
+      <text x="28" y="196" fill="#64748B">token</text>
+      <text x="168" y="196" fill="#F8FAFC">/oauth2/token</text>
+
+      <text x="28" y="232" fill="#64748B">userinfo</text>
+      <text x="168" y="232" fill="#F8FAFC">/oauth2/userinfo</text>
+    </g>
+
+    <circle cx="36" cy="256" r="4" fill="#2DD4BF"/>
+    <text x="50" y="261" fill="#99F6E4" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="600">issuer ready</text>
+  </g>
 </svg>

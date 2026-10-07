@@ -10,4 +10,6 @@ railway config plan
 railway config apply
 ```
 
+The app service pulls `ghcr.io/t3xydev/better-auth-server:latest` (published by `.github/workflows/release-image.yml`). It does not build from git. After apply, turn on image auto-updates so Railway redeploys when that tag's digest changes.
+
 Edit knobs in `deploy/config.ts` (healthcheck path, port, GitHub repo, service names), then re-run `pnpm deploy:sync`. Do not revive `railway.toml` — Config as Code is deprecated.

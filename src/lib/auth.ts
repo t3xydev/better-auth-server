@@ -11,6 +11,7 @@ import { nextCookies } from "better-auth/next-js"
 import {
     admin,
     jwt,
+    multiSession,
     openAPI,
     organization,
     twoFactor
@@ -22,6 +23,12 @@ import { db } from "@/database/db"
 import * as schema from "@/database/schema"
 import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
+import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
+import { billing } from "@/modules/billing/plugin"
+import { stripeAuthPlugin } from "@/modules/billing/stripe-plugin"
+import { captureOAuthOutcome } from "@/modules/observability/oauth-capture"
+import { segmentClaimsForUser } from "@/modules/segments/claims"
+import { segments } from "@/modules/segments/plugin"
 import {
     DCR_DEFAULT_SCOPES,
     PROVIDER_SCOPES,
@@ -45,6 +52,8 @@ type FixErrorCodes<T> = Omit<T, "$ERROR_CODES"> &
     Pick<BetterAuthPlugin, "$ERROR_CODES">
 
 const ALLOWED_SCOPES = PROVIDER_SCOPES
+
+const cardBillingPlugin = stripeAuthPlugin()
 
 const authOrigin = (
     process.env.BETTER_AUTH_URL || "http://localhost:3000"
@@ -139,6 +148,21 @@ export const auth = betterAuth({
             throw new APIError("FORBIDDEN", {
                 message: "An invitation is required to create an account."
             })
+        }),
+        after: createAuthMiddleware(async (ctx) => {
+            const session = ctx.context.session as
+                | { user?: { id?: string } }
+                | null
+                | undefined
+            const pending = captureOAuthOutcome({
+                path: ctx.path,
+                body: ctx.body,
+                query: ctx.query,
+                returned: ctx.context.returned,
+                userId: session?.user?.id ?? null
+            })
+            if (!pending) return
+            ctx.context.runInBackground(pending)
         })
     },
     disabledPaths: ["/token"],
@@ -204,6 +228,28 @@ export const auth = betterAuth({
                     invitedUser.role === "user" || invitedUser.role === "admin"
                 )
             },
+            inviteHooks: {
+                afterCreateInvite: async ({ invitations }) => {
+                    const { currentInviteGrants } = await import(
+                        "@/modules/segments/invite-grants"
+                    )
+                    const { saveInviteGrants } = await import(
+                        "@/modules/segments/store"
+                    )
+                    const pending = currentInviteGrants()
+                    if (!pending) return
+                    await saveInviteGrants(
+                        invitations.map((invitation) => invitation.id),
+                        pending
+                    )
+                },
+                afterAcceptInvite: async ({ invitation, invitedUser }) => {
+                    const { applyInviteGrants } = await import(
+                        "@/modules/segments/store"
+                    )
+                    await applyInviteGrants(invitation.id, invitedUser.id)
+                }
+            },
             async sendUserInvitation({ email, role, url, newAccount }) {
                 const appName =
                     process.env.APPLICATION_NAME || "Better Auth Server"
@@ -227,6 +273,10 @@ export const auth = betterAuth({
         }) as unknown as FixErrorCodes<ReturnType<typeof invite>>,
         nostr({ disableImplicitSignUp: true }),
         nostrLink(),
+        multiSession(),
+        billing(),
+        ...(cardBillingPlugin ? [cardBillingPlugin] : []),
+        segments(),
         dash(),
         sentinel(),
         openAPI(),
@@ -259,12 +309,15 @@ export const auth = betterAuth({
                 introspect: { window: 60, max: 20 },
                 userinfo: { window: 60, max: 30 }
             },
-            customAccessTokenClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
-            customIdTokenClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
-            customUserInfoClaims: async ({ user }) =>
-                user?.role ? { roles: [user.role] } : {},
+            customAccessTokenClaims: async ({ user, scopes }) => ({
+                ...(await segmentClaimsForUser(user)),
+                ...(await entitlementClaimsForUser(user?.id, scopes))
+            }),
+            customIdTokenClaims: async ({ user }) => segmentClaimsForUser(user),
+            customUserInfoClaims: async ({ user, scopes }) => ({
+                ...(await segmentClaimsForUser(user)),
+                ...(await entitlementClaimsForUser(user?.id, scopes))
+            }),
             advertisedMetadata: {
                 claims_supported: [
                     "sub",
@@ -281,7 +334,11 @@ export const auth = betterAuth({
                     "picture",
                     "given_name",
                     "family_name",
-                    "roles"
+                    "roles",
+                    "groups",
+                    "permissions",
+                    "entitlements",
+                    "subscription"
                 ]
             }
         }),

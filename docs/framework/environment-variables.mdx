@@ -1,6 +1,6 @@
 ---
 title: "Environment variables"
-description: "Secrets, SMTP, branding, and analytics."
+description: "Secrets, SMTP, branding, and observability."
 ---
 
 > Part of the [docs index](/docs/framework). Copy `.env.example` for a commented template.
@@ -70,6 +70,7 @@ Customize the app name, theme color, and asset URLs. All are optional.
 | `NEXT_PUBLIC_SHOW_GITHUB` | Set to `"true"` to show the GitHub link in the header. | `false` (hidden) |
 | `NEXT_PUBLIC_DOCS_ENABLED` | Set to `"true"` to enable the Fumadocs site at `/docs/framework` (header link, routes, search). | `false` |
 | `NEXT_PUBLIC_ORGANIZATIONS_ENABLED` | Set to `"true"` to enable the organizations plugin and UI (members, invites, `/organization/*`). | `false` |
+| `NEXT_PUBLIC_BILLING_ENABLED` | Set to `"true"` to enable account billing UI (`/account/billing`, `/pricing`) and entitlement claims. In `next dev`, defaults on with a Card / USDC mock unless set to `"false"`. | `false` (production) |
 | `NEXT_PUBLIC_INVITE_ONLY` | Set to `"true"` to require a [better-invite](/docs/framework/invitations) link for new registrations. The first user may still sign up to bootstrap an admin. | `false` |
 
 ---
@@ -93,14 +94,72 @@ Delivery preference (first match wins):
 
 ---
 
-## Analytics (PostHog)
+## Billing
 
-Optional. When `NEXT_PUBLIC_POSTHOG_KEY` is not set, PostHog is disabled entirely.
+Opt-in account-scoped subscriptions. See [billing](/docs/framework/billing). Sign-in stays free; a plan is an add-on.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key. Enables event tracking and user identification. | None (disabled) |
-| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog API host URL. | `https://us.i.posthog.com` |
+| `NEXT_PUBLIC_BILLING_ENABLED` | Set to `"true"` to show `/account/billing` and `/pricing` and to emit entitlement claims. In `next dev`, on unless `"false"`. | `false` (production) |
+| `BILLING_PROVIDER` | Default checkout toggle (`stripe` card or `zoneless` USDC). Not exclusive — both processors can be configured. | `stripe` |
+| `STRIPE_SECRET_KEY` | Stripe restricted API key (`rk_…` preferred) or secret key. Server-only. | None |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for `{BETTER_AUTH_URL}/api/auth/stripe/webhook`. | None |
+| `BILLING_STRIPE_PRICE_PREMIUM_MONTHLY` | Stripe Price ID for the Premium monthly plan. | None |
+| `BILLING_STRIPE_PRICE_PREMIUM_YEARLY` | Stripe Price ID for the Premium yearly plan. | None |
+| `ZONELESS_API_KEY` | Zoneless secret API key for your instance. Server-only. | None |
+| `ZONELESS_API_URL` | Origin of your Zoneless API **without** `/v1`. | None |
+| `ZONELESS_WEBHOOK_SECRET` | Signing secret for `{BETTER_AUTH_URL}/api/auth/billing/webhook/zoneless`. | None |
+| `BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY` | Zoneless Price ID for the Premium monthly plan. | None |
+| `BILLING_ZONELESS_PRICE_PREMIUM_YEARLY` | Zoneless Price ID for the Premium yearly plan. | None |
+| `BILLING_TRIAL_DAYS` | Optional trial length on a user’s first subscribe. | None |
+
+---
+
+## Observability
+
+Optional. PostHog, Sentry, and tracing each stay off until their variables are set. Behavior, scrubbing, and backend choice are in [observability](/docs/framework/observability).
+
+### PostHog
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project API key. Enables browser and server capture, identify, and feature-flag checks. | None (disabled) |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog API host. The browser sends through `/ingest` on this app; the server SDK calls this host directly. | `https://us.i.posthog.com` |
+| `NEXT_PUBLIC_POSTHOG_SESSION_REPLAY` | Set to `"true"` to record sessions. Inputs are masked. | Off |
+
+### Sentry
+
+Errors only. Traces stay on the OpenTelemetry pipeline.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_SENTRY_DSN` | Browser DSN. Also used on the server when `SENTRY_DSN` is unset. | None (disabled) |
+| `SENTRY_DSN` | Server and edge DSN. | Falls back to `NEXT_PUBLIC_SENTRY_DSN` |
+| `SENTRY_ENVIRONMENT` | Server environment name on events. | `NODE_ENV` |
+| `NEXT_PUBLIC_SENTRY_ENVIRONMENT` | Browser environment name. | `NODE_ENV` |
+| `SENTRY_RELEASE` | Server release identifier. | None |
+| `SENTRY_ORG` | Organization slug. Used only for source map upload. | None |
+| `SENTRY_PROJECT` | Project slug. Used only for source map upload. | None |
+| `SENTRY_AUTH_TOKEN` | Build-time token. Source maps upload only when this is set. | None |
+
+### OpenTelemetry
+
+`OTEL_BACKEND` selects the trace exporter. Unset or `off` registers no tracer.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OTEL_BACKEND` | `otlp`, `gitlab`, or `signoz`. | Off |
+| `OTEL_SERVICE_NAME` | `service.name` resource attribute. | `better-auth-server` |
+| `OTEL_SERVICE_VERSION` | `service.version` when set. | None |
+| `OTEL_TRACES_SAMPLE_RATE` | Root sample ratio from 0 to 1. | `1` in development, `0.1` in production |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Collector base URL for `otlp` (for example `http://localhost:4318`). | None |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Comma-separated `key=value` headers for `otlp`. | None |
+| `GITLAB_HOST` | GitLab origin for `gitlab`. | `https://gitlab.com` |
+| `GITLAB_PROJECT_ID` | Project id used in the traces URL and `gitlab.project.id`. | None |
+| `GITLAB_OBSERVABILITY_TOKEN` | Project access token sent as `PRIVATE-TOKEN`. Server-only. | None |
+| `GITLAB_OTEL_ENDPOINT` | Optional full collector URL. Replaces the derived project URL. | None |
+| `SIGNOZ_INGEST_URL` | SigNoz Cloud ingest origin or a self-hosted collector (`http://host:4318`). | None |
+| `SIGNOZ_INGESTION_KEY` | Cloud ingestion key. Omit for a self-hosted collector. Server-only. | None |
 
 ---
 

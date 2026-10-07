@@ -1,0 +1,90 @@
+---
+title: "Roles and groups"
+description: "Operator-managed catalogs for segmenting users in tokens, this app, and PostHog flags."
+---
+
+> Part of the [docs index](/docs/framework). Related: [features](/docs/framework/features) · [admin panel](/docs/framework/admin-panel) · [invitations](/docs/framework/invitations).
+
+This issuer keeps **IdP privilege** (`admin` / `user` on `users.role`) separate from **segment roles** and **groups**. Privilege guards `/admin`. Catalogs are labels you assign for feature gating and analytics.
+
+Organizations (`NEXT_PUBLIC_ORGANIZATIONS_ENABLED`) remain optional tenants. They are not groups.
+
+## Model
+
+| Layer | Where | What it is |
+|---|---|---|
+| Privilege | `users.role` | `admin` or `user`. Required for the admin panel. Invites still assign only these two. |
+| Catalog roles | `segment_roles` + membership | Operator-created slugs such as `beta` or `staff`. Many per user. Each role can grant permissions from the app allowlist. |
+| Groups | `groups` + membership | Overlapping cohorts such as `early-access`. Many per user. Groups do not grant permissions. |
+
+Slugs are lowercase kebab-case (`^[a-z][a-z0-9-]{0,62}$`). **`admin` and `user` are reserved** so a catalog entry cannot impersonate privilege.
+
+## Admin
+
+With an admin session:
+
+1. **Roles** (`/admin/roles`) and **Groups** (`/admin/groups`) — create, rename, delete. Open a row to edit it, set role permissions, and add or remove members. Deleting a role or group removes its memberships. Slug is immutable after create.
+2. **Users** (`/admin/users`) — search, see assigned slugs, open a user, set privilege, assign catalog roles and groups.
+
+You cannot remove your own admin privilege from the user detail page. Catalog permissions do not grant access to this panel.
+
+The first admin can still be created with DevTools or:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
+```
+
+## Tokens
+
+Access tokens, ID tokens, and UserInfo include:
+
+```json
+{
+  "roles": ["user", "beta"],
+  "groups": ["early-access"],
+  "permissions": ["app:access"]
+}
+```
+
+`roles` is the privilege value plus catalog role slugs (unique). `groups` is catalog group slugs. `permissions` is the allowlisted keys granted by the user's catalog roles (unique). Unknown keys stored on a role are ignored. Admin privilege does not add permissions. These are identity attributes (no extra OAuth scope), unlike paid [entitlements](/docs/framework/billing).
+
+`GET /api/auth/segments/me` (session) returns `{ privilegeRole, roles, groups, permissions }` for first-party UI.
+
+## Gating in this app
+
+```ts
+import { requirePermission, userHasRole, userInGroup } from "@/modules/segments"
+
+await userHasRole(userId, "beta")
+await userInGroup(userId, "early-access")
+await requirePermission(userId, "app:access")
+```
+
+`userHasRole` and `userInGroup` check **catalog** slugs only. `requirePermission` throws when none of the user's catalog roles grant that key. Admin-panel access stays `session.user.role === "admin"`.
+
+Existing pages stay open. Call `requirePermission` from a product route when that route should be limited to a role. Add keys in `src/modules/segments/permissions.ts`. The starter allowlist is `app:access` and `directory:read`.
+
+OAuth / OIDC clients should read `roles`, `groups`, and `permissions` from UserInfo (or the access token) and gate in the client app.
+
+## PostHog feature flags
+
+When analytics is enabled, identify sets person properties:
+
+| Property | Value |
+|---|---|
+| `privilege_role` | `admin` or `user` |
+| `roles` | Array: privilege + catalog role slugs |
+| `groups` | Array of group slugs |
+| `permissions` | Array of allowlisted permission keys |
+
+Create a PostHog feature flag whose release condition matches a person property, for example `groups` contains `beta`, or `roles` contains `staff`. There is no in-app flag table — targeting lives in PostHog.
+
+After you change a user's membership, they need a new identify (reload this app, or a new token for client apps) before flags and claims pick it up.
+
+## Code
+
+| Piece | Location |
+|---|---|
+| Plugin + `/segments/me` | `src/modules/segments/` |
+| Claims | Wired in `src/lib/auth.ts` |
+| Admin UI | `/admin/users`, `/admin/roles`, `/admin/groups` |

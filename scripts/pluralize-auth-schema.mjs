@@ -18,6 +18,16 @@ const snake = [
     ["dbsc_bound_key", "dbsc_bound_keys"],
     ["dbsc_session", "dbsc_sessions"],
     ["devtools_user", "devtools_users"],
+    ["billing_webhook_event", "billing_webhook_events"],
+    ["billing_entitlement", "billing_entitlements"],
+    ["billing_subscription", "billing_subscriptions"],
+    ["billing_customer", "billing_customers"],
+    ["subscription", "subscriptions"],
+    ["invite_segment_grant", "invite_segment_grants"],
+    ["segment_role_member", "segment_role_members"],
+    ["segment_role", "segment_roles"],
+    ["group_member", "group_members"],
+    ["group", "groups"],
     ["nostr_pubkey", "nostr_pubkeys"],
     ["invite_use", "invite_uses"],
     ["two_factor", "two_factors"],
@@ -50,6 +60,16 @@ const idents = [
     ["dbscBoundKey", "dbscBoundKeys"],
     ["dbscSession", "dbscSessions"],
     ["devtoolsUser", "devtoolsUsers"],
+    ["billingWebhookEvent", "billingWebhookEvents"],
+    ["billingEntitlement", "billingEntitlements"],
+    ["billingSubscription", "billingSubscriptions"],
+    ["billingCustomer", "billingCustomers"],
+    ["subscription", "subscriptions"],
+    ["inviteSegmentGrant", "inviteSegmentGrants"],
+    ["segmentRoleMember", "segmentRoleMembers"],
+    ["segmentRole", "segmentRoles"],
+    ["groupMember", "groupMembers"],
+    ["group", "groups"],
     ["nostrPubkey", "nostrPubkeys"],
     ["inviteUse", "inviteUses"],
     ["invitation", "invitations"],
@@ -74,6 +94,63 @@ for (const [oldName, newName] of idents) {
 
 src = src.replace(/jwkss:\s*text\("jwkss"\)/g, 'jwks: text("jwks")')
 
+src = src.replaceAll('.default("members")', '.default("member")')
+
+const indexNames = [
+    ["session_userId_idx", "sessions_userId_idx"],
+    ["account_userId_idx", "accounts_userId_idx"],
+    ["verification_identifier_idx", "verifications_identifier_idx"],
+    ["twoFactor_secret_idx", "twoFactors_secret_idx"],
+    ["twoFactor_userId_idx", "twoFactors_userId_idx"],
+    ["passkey_userId_idx", "passkeys_userId_idx"],
+    ["passkey_credentialID_idx", "passkeys_credentialID_idx"],
+    ["member_organizationId_idx", "members_organizationId_idx"],
+    ["member_userId_idx", "members_userId_idx"],
+    ["invitation_organizationId_idx", "invitations_organizationId_idx"],
+    ["invitation_email_idx", "invitations_email_idx"],
+    ["nostrPubkey_userId_idx", "nostrPubkeys_userId_idx"],
+    [
+        "oauthClientResource_clientId_resourceId_uidx",
+        "oauthClientResources_clientId_resourceId_uidx"
+    ],
+    ["oauthClientResource_clientId_idx", "oauthClientResources_clientId_idx"],
+    [
+        "oauthClientResource_resourceId_idx",
+        "oauthClientResources_resourceId_idx"
+    ],
+    ["oauthClient_userId_idx", "oauthClients_userId_idx"],
+    ["oauthRefreshToken_clientId_idx", "oauthRefreshTokens_clientId_idx"],
+    ["oauthRefreshToken_sessionId_idx", "oauthRefreshTokens_sessionId_idx"],
+    ["oauthRefreshToken_userId_idx", "oauthRefreshTokens_userId_idx"],
+    [
+        "oauthRefreshToken_authorizationCodeId_idx",
+        "oauthRefreshTokens_authorizationCodeId_idx"
+    ],
+    ["oauthAccessToken_clientId_idx", "oauthAccessTokens_clientId_idx"],
+    ["oauthAccessToken_sessionId_idx", "oauthAccessTokens_sessionId_idx"],
+    ["oauthAccessToken_userId_idx", "oauthAccessTokens_userId_idx"],
+    [
+        "oauthAccessToken_authorizationCodeId_idx",
+        "oauthAccessTokens_authorizationCodeId_idx"
+    ],
+    ["oauthAccessToken_refreshId_idx", "oauthAccessTokens_refreshId_idx"],
+    ["oauthConsent_clientId_idx", "oauthConsents_clientId_idx"],
+    ["oauthConsent_userId_idx", "oauthConsents_userId_idx"],
+    [
+        "segmentRoleMember_userId_roleId_uidx",
+        "segmentRoleMembers_userId_roleId_uidx"
+    ],
+    ["segmentRoleMember_userId_idx", "segmentRoleMembers_userId_idx"],
+    ["segmentRoleMember_roleId_idx", "segmentRoleMembers_roleId_idx"],
+    ["groupMember_userId_groupId_uidx", "groupMembers_userId_groupId_uidx"],
+    ["groupMember_userId_idx", "groupMembers_userId_idx"],
+    ["groupMember_groupId_idx", "groupMembers_groupId_idx"]
+]
+
+for (const [oldName, newName] of indexNames) {
+    src = src.replaceAll(`"${oldName}"`, `"${newName}"`)
+}
+
 const relationExports = [
     ["userRelations", "usersRelations"],
     ["sessionRelations", "sessionsRelations"],
@@ -85,6 +162,15 @@ const relationExports = [
     ["invitationRelations", "invitationsRelations"],
     ["inviteRelations", "invitesRelations"],
     ["inviteUseRelations", "inviteUsesRelations"],
+    ["billingCustomerRelations", "billingCustomersRelations"],
+    ["subscriptionRelations", "subscriptionsRelations"],
+    ["billingSubscriptionRelations", "billingSubscriptionsRelations"],
+    ["billingEntitlementRelations", "billingEntitlementsRelations"],
+    ["inviteSegmentGrantRelations", "inviteSegmentGrantsRelations"],
+    ["segmentRoleRelations", "segmentRolesRelations"],
+    ["segmentRoleMemberRelations", "segmentRoleMembersRelations"],
+    ["groupRelations", "groupsRelations"],
+    ["groupMemberRelations", "groupMembersRelations"],
     ["nostrPubkeyRelations", "nostrPubkeysRelations"],
     ["oauthClientRelations", "oauthClientsRelations"],
     ["oauthResourceRelations", "oauthResourcesRelations"],

@@ -1,0 +1,60 @@
+---
+title: "Observability"
+description: "Optional PostHog, Sentry, and OpenTelemetry."
+---
+
+PostHog, Sentry, and tracing are independent. Omit their variables and the server boots and serves sign-in exactly as before. Nothing is sent.
+
+Traces run on the Node.js server (Railway, Docker, Cloudflare Containers). The edge runtime can still report Sentry errors. Cloudflare Workers mode is not instrumented.
+
+## PostHog
+
+Set `NEXT_PUBLIC_POSTHOG_KEY`. The browser sends through `/ingest` on this host so blockers are less likely to drop events. The server SDK calls `NEXT_PUBLIC_POSTHOG_HOST` directly (default `https://us.i.posthog.com`). Use an `eu` host and the `/ingest` proxy follows that region.
+
+What is captured:
+
+- Page views and page leaves
+- Identify, with `privilege_role`, `roles`, `groups`, and `permissions` for feature flags — see [roles and groups](/docs/framework/roles-and-groups)
+- Browser auth events (password changes, passkeys, 2FA, Nostr link, sign-in and sign-out)
+- Server events the browser does not see: `oauth_authorize`, `oauth_consent`, and `oauth_token`
+- Request errors from the Next.js `onRequestError` hook, tied to the PostHog distinct id when that cookie is present
+
+`isFeatureEnabled` is available from `src/modules/observability` for server checks. Product screens are not gated on flags.
+
+Session replay is off unless `NEXT_PUBLIC_POSTHOG_SESSION_REPLAY=true`. When it is on, every input is masked.
+
+OAuth event properties are `client_id`, `user_id` when a session exists, and `success` or a short `error` code. Access tokens, refresh tokens, authorization codes, and client secrets are not properties.
+
+## Sentry
+
+Set `NEXT_PUBLIC_SENTRY_DSN` for the browser. The server and edge use `SENTRY_DSN`, or the public DSN when that is unset.
+
+Sentry records errors. It does not export traces. OpenTelemetry owns spans, and Sentry links an error to the active span when tracing is on.
+
+Source map upload runs only when `SENTRY_AUTH_TOKEN` is set, along with `SENTRY_ORG` and `SENTRY_PROJECT`. Local builds stay quiet without the token.
+
+## OpenTelemetry
+
+Set `OTEL_BACKEND` to one of:
+
+| Value | Where traces go |
+|---|---|
+| `otlp` | Any OTLP HTTP collector, including a GitLab Observability VM |
+| `gitlab` | GitLab project observability |
+| `signoz` | SigNoz Cloud or a self-hosted SigNoz collector |
+
+Unset or `off` registers no tracer. A selected backend with missing credentials also stays off, so a partial config cannot fail boot.
+
+`otlp` uses `OTEL_EXPORTER_OTLP_ENDPOINT` (base URL such as `http://collector:4318`) and optional `OTEL_EXPORTER_OTLP_HEADERS` (`key=value` pairs, comma-separated).
+
+`gitlab` sends to `https://{GITLAB_HOST}/api/v4/projects/{GITLAB_PROJECT_ID}/observability/v1/traces` with header `PRIVATE-TOKEN` from `GITLAB_OBSERVABILITY_TOKEN`. `GITLAB_HOST` defaults to `https://gitlab.com`. Set `GITLAB_OTEL_ENDPOINT` when the ingest path is a collector instead of the project API. The resource includes `gitlab.project.id` and `service.version` when `OTEL_SERVICE_VERSION` is set.
+
+`signoz` sends to `{SIGNOZ_INGEST_URL}/v1/traces`. Cloud sets `signoz-ingestion-key` from `SIGNOZ_INGESTION_KEY`. A self-hosted collector omits the key (`http://host:4318`).
+
+The service name is `OTEL_SERVICE_NAME` or `better-auth-server`. The root sample rate is `OTEL_TRACES_SAMPLE_RATE`, otherwise `1` in development and `0.1` in production. HTTP, fetch (undici), and Postgres are instrumented. Filesystem spans are not.
+
+## What is removed before send
+
+Passwords, one-time codes, tokens, client secrets, `Authorization`, and `Cookie` are redacted from PostHog properties and Sentry events. Query strings on `/api/auth/*` are not recorded on spans or Sentry request URLs.
+
+`GITLAB_OBSERVABILITY_TOKEN`, `SIGNOZ_INGESTION_KEY`, `SENTRY_AUTH_TOKEN`, and `SENTRY_DSN` stay on the server. Only `NEXT_PUBLIC_` values are visible in the browser.

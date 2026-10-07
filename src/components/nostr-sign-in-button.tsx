@@ -28,12 +28,10 @@ export function NostrSignInButton() {
             if (result.error) {
                 if (result.error.message?.includes("not registered")) {
                     toast.error(
-                        "Nostr key not linked. Link your key in account settings first.",
+                        "Nostr key not linked. Link your key from Account → Security first."
                     )
                 } else {
-                    toast.error(
-                        result.error.message || "Nostr sign-in failed",
-                    )
+                    toast.error(result.error.message || "Nostr sign-in failed")
                 }
                 setIsPending(false)
                 return

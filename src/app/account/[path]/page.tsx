@@ -1,6 +1,8 @@
 import { AccountView } from "@daveyplate/better-auth-ui"
 import { accountViewPaths } from "@daveyplate/better-auth-ui/server"
 
+import { AccountSecurityView } from "@/modules/sign-in-methods"
+
 export const dynamicParams = false
 
 export function generateStaticParams() {
@@ -16,14 +18,18 @@ export default async function AccountPage({
 
     return (
         <main className="container self-center p-4 md:p-6">
-            <AccountView
-                path={path}
-                classNames={{
-                    sidebar: {
-                        base: "sticky top-20"
-                    }
-                }}
-            />
+            {path === accountViewPaths.SECURITY ? (
+                <AccountSecurityView />
+            ) : (
+                <AccountView
+                    path={path}
+                    classNames={{
+                        sidebar: {
+                            base: "sticky top-20"
+                        }
+                    }}
+                />
+            )}
         </main>
     )
 }

@@ -8,7 +8,7 @@ export const TRUST_TIERS = [
     "developer",
     "verified",
     "partner",
-    "first_party",
+    "first_party"
 ] as const
 
 export type TrustTier = (typeof TRUST_TIERS)[number]
@@ -18,7 +18,7 @@ export const TRUST_TIER_LABELS: Record<TrustTier, string> = {
     developer: "Registered developer",
     verified: "Verified application",
     partner: "Trusted partner",
-    first_party: "First-party",
+    first_party: "First-party"
 }
 
 /** Higher number = more privilege. */
@@ -27,7 +27,7 @@ export const TRUST_TIER_RANK: Record<TrustTier, number> = {
     developer: 1,
     verified: 2,
     partner: 3,
-    first_party: 4,
+    first_party: 4
 }
 
 /** Scopes advertised / enforceable by this auth server today. */
@@ -35,7 +35,8 @@ export const PROVIDER_SCOPES = [
     "openid",
     "profile",
     "email",
-    "offline_access",
+    "entitlements",
+    "offline_access"
 ] as const
 
 export type ProviderScope = (typeof PROVIDER_SCOPES)[number]
@@ -48,12 +49,13 @@ export const SCOPE_MIN_TIER: Record<ProviderScope, TrustTier> = {
     openid: "unknown",
     profile: "unknown",
     email: "unknown",
-    offline_access: "verified",
+    entitlements: "unknown",
+    offline_access: "verified"
 }
 
 /** Safe for dynamic client registration (Tier 0). */
 export const PUBLIC_SCOPES = PROVIDER_SCOPES.filter(
-    (s) => TRUST_TIER_RANK[SCOPE_MIN_TIER[s]] <= TRUST_TIER_RANK.unknown,
+    (s) => TRUST_TIER_RANK[SCOPE_MIN_TIER[s]] <= TRUST_TIER_RANK.unknown
 )
 
 export const DCR_DEFAULT_SCOPES = ["openid", "profile"] as const
@@ -67,17 +69,20 @@ export type ClientTrustMetadata = {
 }
 
 export function isTrustTier(value: unknown): value is TrustTier {
-    return typeof value === "string" && (TRUST_TIERS as readonly string[]).includes(value)
+    return (
+        typeof value === "string" &&
+        (TRUST_TIERS as readonly string[]).includes(value)
+    )
 }
 
-export function parseClientMetadata(
-    raw: unknown,
-): Record<string, unknown> {
+export function parseClientMetadata(raw: unknown): Record<string, unknown> {
     if (raw == null) return {}
     if (typeof raw === "string") {
         try {
             const parsed = JSON.parse(raw) as unknown
-            return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+            return parsed &&
+                typeof parsed === "object" &&
+                !Array.isArray(parsed)
                 ? (parsed as Record<string, unknown>)
                 : {}
         } catch {
@@ -109,12 +114,14 @@ export function canUseClientCredentials(tier: TrustTier): boolean {
 
 export function scopesAllowedForTier(tier: TrustTier): ProviderScope[] {
     const rank = TRUST_TIER_RANK[tier]
-    return PROVIDER_SCOPES.filter((s) => TRUST_TIER_RANK[SCOPE_MIN_TIER[s]] <= rank)
+    return PROVIDER_SCOPES.filter(
+        (s) => TRUST_TIER_RANK[SCOPE_MIN_TIER[s]] <= rank
+    )
 }
 
 export function filterScopesForTier(
     scopes: string[] | null | undefined,
-    tier: TrustTier,
+    tier: TrustTier
 ): string[] {
     const allowed = new Set(scopesAllowedForTier(tier))
     return (scopes ?? []).filter((s) => allowed.has(s as ProviderScope))
@@ -122,31 +129,31 @@ export function filterScopesForTier(
 
 export function assertScopesForTier(
     scopes: string[] | null | undefined,
-    tier: TrustTier,
+    tier: TrustTier
 ): void {
     const allowed = new Set(scopesAllowedForTier(tier))
     for (const scope of scopes ?? []) {
         if (!allowed.has(scope as ProviderScope)) {
             throw new Error(
-                `Scope "${scope}" requires trust tier "${SCOPE_MIN_TIER[scope as ProviderScope] ?? "higher"}" (client is "${tier}")`,
+                `Scope "${scope}" requires trust tier "${SCOPE_MIN_TIER[scope as ProviderScope] ?? "higher"}" (client is "${tier}")`
             )
         }
     }
 }
 
 export function unknownClientMetadata(
-    extras?: Partial<ClientTrustMetadata>,
+    extras?: Partial<ClientTrustMetadata>
 ): ClientTrustMetadata {
     return {
         trustTier: "unknown",
         riskLevel: "standard",
-        ...extras,
+        ...extras
     }
 }
 
 export function mergeTrustMetadata(
     existing: unknown,
-    patch: Partial<ClientTrustMetadata>,
+    patch: Partial<ClientTrustMetadata>
 ): ClientTrustMetadata {
     const current = parseClientMetadata(existing)
     const tier = isTrustTier(patch.trustTier)
@@ -180,6 +187,6 @@ export function mergeTrustMetadata(
                     current.riskLevel === "restricted" ||
                     current.riskLevel === "standard"
                   ? current.riskLevel
-                  : "standard",
+                  : "standard"
     }
 }

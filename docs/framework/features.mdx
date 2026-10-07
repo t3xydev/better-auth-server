@@ -15,9 +15,10 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 | Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts) |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
-| Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking (`/account/nostr`) |
+| Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking from **Account → Security** |
 | Invitations | `better-invite` | Admin create/list UI, email + public invites, `/invite/activate/[token]` welcome + accept flow — [guide](/docs/framework/invitations). Opt-in invite-only registration via `NEXT_PUBLIC_INVITE_ONLY=true` |
 | Organizations | `organization` | Opt-in via `NEXT_PUBLIC_ORGANIZATIONS_ENABLED=true`. Members, roles, email invites; UI at `/organization/*` and `/account/organizations` |
+| Billing | Account-scoped catalog; card via the Stripe plugin, USDC via Zoneless | Production: `NEXT_PUBLIC_BILLING_ENABLED=true`. `next dev` shows a placeholder catalog and a Card / USDC mock toggle unless the flag is `"false"`. Both adapters write the same entitlements. Users subscribe on this host; client apps read entitlements — [guide](/docs/framework/billing) |
 
 ### Planned identity methods
 
@@ -29,7 +30,8 @@ Same account model as above — first-class sign-in / link paths for the IdP (se
 | Bitcoin Connect | Planned | BTC wallet connect as auth/link |
 | Lightning | Planned | LN auth / payments-adjacent identity |
 | Ethereum | Planned | Wallet sign-in / linking (e.g. SIWE-style) |
-| Billing | Planned | Account-scoped plans / payments |
+
+Users can link extra methods (password, passkey, Nostr) from **Account → Security** so the same account has more ways to sign in.
 
 ## OAuth 2.1 / OpenID Connect provider
 
@@ -44,7 +46,7 @@ This app can act as an **authorization server** for your other apps — either b
 | Protected resource metadata | `/.well-known/oauth-protected-resource` |
 | Admin UI for clients | `/admin/clients` — [guide](/docs/framework/admin-panel) |
 
-**Default scopes:** `openid`, `profile`, `email`, `offline_access`
+**Default scopes:** `openid`, `profile`, `email`, `entitlements`, `offline_access`
 
 Dynamic client registration is off by default. Set `ALLOW_DYNAMIC_CLIENT_REGISTRATION=true` to enable it for authenticated users. Public unauthenticated registration stays off unless `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION=true`.
 
@@ -71,7 +73,8 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 
 | Feature | Details |
 |---|---|
-| Admin plugin | Roles (`admin` / `user`), ban fields |
+| Admin plugin | Privilege roles (`admin` / `user`), ban fields |
+| Users / roles / groups | Admin UI to list users, set privilege, manage catalog roles (with permissions) and groups, and assign membership — [guide](/docs/framework/roles-and-groups) |
 | OAuth client panel | Create, edit, configure sign-in and post-logout callbacks, rotate secrets, disable, delete |
 | Better Auth Dash | Infra dashboard plugin (`BETTER_AUTH_API_KEY`) |
 | Sentinel | Bot / challenge protection (client auto-solve enabled) |
@@ -82,6 +85,8 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 ## Sessions & security
 
 - Sessions stored in the database with cookie cache (`jwe`, 5-minute max age)
+- Multi-session on the same browser: switch accounts, add an account, and manage device sessions from **Account → Settings** and the user menu
+- **Account → Security** lists every active session (IP / user agent) with revoke, plus a sign-in methods card for linking password, passkey, and Nostr
 - Trusted origins: `BETTER_AUTH_URL` plus optional `BETTER_AUTH_TRUSTED_ORIGINS`
 - Forwarded IP headers for proxies (`x-forwarded-for`, `x-real-ip`)
 - DBSC toolkit integration for device-bound session credentials
@@ -109,9 +114,15 @@ Customize without code changes:
 - Optional GitHub header link (`NEXT_PUBLIC_SHOW_GITHUB=true`)
 - In-app docs via Fumadocs at `/docs/framework` (opt-in with `NEXT_PUBLIC_DOCS_ENABLED=true`)
 
-## Analytics
+## Observability
 
-Set `NEXT_PUBLIC_POSTHOG_KEY` (and optionally `NEXT_PUBLIC_POSTHOG_HOST`) to enable PostHog pageviews and auth-related event tracking. Omit the key to disable analytics entirely.
+PostHog, Sentry, and OpenTelemetry are optional and independent. Leave their variables unset and nothing is sent.
+
+Set `NEXT_PUBLIC_POSTHOG_KEY` for pageviews, auth events, and identify. Person properties include `privilege_role`, `roles`, and `groups` for feature flags — see [roles-and-groups](/docs/framework/roles-and-groups). Server capture covers OAuth authorize, consent, and token outcomes. Session replay stays off unless `NEXT_PUBLIC_POSTHOG_SESSION_REPLAY=true`.
+
+Sentry receives errors. Traces go to the backend selected by `OTEL_BACKEND`: a generic OTLP collector, GitLab, or SigNoz.
+
+Setup, scrubbing, and variables: [observability](/docs/framework/observability).
 
 ## MCP
 

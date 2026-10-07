@@ -54,6 +54,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/patches ./patches
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --from=builder /app/src/modules/observability/posthog-hosts.mjs ./src/modules/observability/posthog-hosts.mjs
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
@@ -93,17 +94,17 @@ agent-transcripts
 }
 
 function dockerCompose(): string {
-    const { name, port, dokploy } = deployConfig
+    const { name, port, dokploy, releaseImage } = deployConfig
     const router = dokploy.routerName
     const domain = dokploy.domain
     return `# ${GENERATED}
 # Dokploy: Compose path ./docker-compose.yml — set dokploy.domain in deploy/config.ts then re-sync.
+# Image is published by .github/workflows/release-image.yml. pull_policy always fetches ${releaseImage.tag}.
 
 services:
   ${name}:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${releaseImage.ref}
+    pull_policy: always
     restart: always
     ports:
       - "${port}"
@@ -129,20 +130,17 @@ networks:
 }
 
 function railwayIac(): string {
-    const {
-        port,
-        healthcheckPath,
-        healthcheckTimeout,
-        railway
-    } = deployConfig
+    const { healthcheckPath, healthcheckTimeout, railway, releaseImage } =
+        deployConfig
     return `// ${GENERATED}
 // Railway Infrastructure as Code — plan/apply with the Railway CLI:
 //   railway link && railway config plan && railway config apply
 // Do not add railway.toml (Config as Code is deprecated).
+// App source is the GHCR image (${releaseImage.ref}). Releases from ${railway.branch} move that tag.
 import {
     defineRailway,
-    github,
     group,
+    image,
     postgres,
     preserve,
     project,
@@ -155,14 +153,8 @@ export default defineRailway(() => {
     const cache = redis("${railway.redisName}")
 
     const app = service("${railway.serviceName}", {
-        source: github("${railway.githubRepo}", { branch: "${railway.branch}" }),
-        build: {
-            builder: "DOCKERFILE",
-            dockerfilePath: "Dockerfile",
-            // Image build must not need DATABASE_URL (migrate runs in CMD).
-            buildCommand: null
-        },
-        // Omit start — Dockerfile CMD runs \`pnpm start\` (migrate + next start).
+        source: image("${releaseImage.ref}"),
+        // Omit start — image CMD runs \`pnpm start\` (migrate + next start).
         healthcheck: "${healthcheckPath}",
         healthcheckTimeout: ${healthcheckTimeout},
         deploy: {
@@ -183,7 +175,19 @@ export default defineRailway(() => {
             APPLICATION_NAME: preserve(),
             BETTER_AUTH_API_KEY: preserve(),
             BETTER_AUTH_IDENTIFY_URL: preserve(),
-            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve()
+            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve(),
+            NEXT_PUBLIC_BILLING_ENABLED: preserve(),
+            BILLING_PROVIDER: preserve(),
+            STRIPE_SECRET_KEY: preserve(),
+            STRIPE_WEBHOOK_SECRET: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_YEARLY: preserve(),
+            BILLING_TRIAL_DAYS: preserve(),
+            ZONELESS_API_KEY: preserve(),
+            ZONELESS_API_URL: preserve(),
+            ZONELESS_WEBHOOK_SECRET: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_YEARLY: preserve()
         }
     })
 
@@ -194,7 +198,6 @@ export default defineRailway(() => {
     })
 })
 `
-
 }
 
 function railwayReadme(): string {
@@ -209,6 +212,8 @@ railway link
 railway config plan
 railway config apply
 \`\`\`
+
+The app service pulls \`${deployConfig.releaseImage.ref}\` (published by \`.github/workflows/release-image.yml\`). It does not build from git. After apply, turn on image auto-updates so Railway redeploys when that tag's digest changes.
 
 Edit knobs in \`deploy/config.ts\` (healthcheck path, port, GitHub repo, service names), then re-run \`pnpm deploy:sync\`. Do not revive \`railway.toml\` — Config as Code is deprecated.
 `

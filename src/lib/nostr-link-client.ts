@@ -1,9 +1,20 @@
 const AUTH_BASE = "/api/auth"
 
+export type LinkedNostrKey = {
+    publicKey: string
+    createdAt: string | null
+}
+
 function getLinkUrl() {
-    const origin =
-        typeof window !== "undefined" ? window.location.origin : ""
+    const origin = typeof window !== "undefined" ? window.location.origin : ""
     return `${origin}${AUTH_BASE}/nostr/link`
+}
+
+async function readErrorMessage(response: Response, fallback: string) {
+    const err = (await response.json().catch(() => null)) as {
+        message?: string
+    } | null
+    return err?.message || fallback
 }
 
 async function getPublicKeyFromExtension(): Promise<string> {
@@ -15,13 +26,25 @@ async function getPublicKeyFromExtension(): Promise<string> {
 
 async function signTokenWithExtension(
     url: string,
-    payload: Record<string, unknown>,
+    payload: Record<string, unknown>
 ): Promise<string> {
     const { getToken } = await import("nostr-tools/nip98")
     if (!window.nostr) throw new Error("Nostr extension not found")
     const sign = window.nostr.signEvent.bind(window.nostr)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return getToken(url, "post", (e: any) => sign(e), true, payload)
+    return getToken(url, "post", (e) => sign(e), true, payload)
+}
+
+export async function listNostrKeys(): Promise<LinkedNostrKey[]> {
+    const response = await fetch(`${AUTH_BASE}/nostr/keys`, {
+        credentials: "include"
+    })
+    if (!response.ok) {
+        throw new Error(
+            await readErrorMessage(response, "Failed to load Nostr keys")
+        )
+    }
+    const payload = (await response.json()) as { keys?: LinkedNostrKey[] }
+    return payload.keys ?? []
 }
 
 export async function linkNostrKey(): Promise<{ publicKey: string }> {
@@ -30,7 +53,8 @@ export async function linkNostrKey(): Promise<{ publicKey: string }> {
     const nonceResponse = await fetch(`${AUTH_BASE}/nostr/nonce`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicKey }),
+        credentials: "include",
+        body: JSON.stringify({ publicKey })
     })
     if (!nonceResponse.ok) {
         throw new Error("Failed to fetch nonce")
@@ -44,17 +68,31 @@ export async function linkNostrKey(): Promise<{ publicKey: string }> {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            Authorization: token,
+            Authorization: token
         },
-        body: JSON.stringify({ nonce }),
+        credentials: "include",
+        body: JSON.stringify({ nonce })
     })
 
     if (!linkResponse.ok) {
-        const err = (await linkResponse.json().catch(() => null)) as {
-            message?: string
-        } | null
-        throw new Error(err?.message || "Failed to link Nostr key")
+        throw new Error(
+            await readErrorMessage(linkResponse, "Failed to link Nostr key")
+        )
     }
 
     return (await linkResponse.json()) as { publicKey: string }
+}
+
+export async function unlinkNostrKey(publicKey: string): Promise<void> {
+    const response = await fetch(`${AUTH_BASE}/nostr/unlink`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ publicKey })
+    })
+    if (!response.ok) {
+        throw new Error(
+            await readErrorMessage(response, "Failed to unlink Nostr key")
+        )
+    }
 }

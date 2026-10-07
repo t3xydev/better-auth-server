@@ -21,8 +21,11 @@ This kit is a fork of [daveyplate/better-auth-nextjs-starter](https://github.com
 | Doc | When you need it |
 |---|---|
 | [Product](/docs/framework/product) | What this kit is for (accounts-style IdP vs extend template) |
-| [Environment variables](/docs/framework/environment-variables) | Configuring secrets, SMTP, branding, analytics |
+| [Environment variables](/docs/framework/environment-variables) | Configuring secrets, SMTP, branding, observability |
+| [Observability](/docs/framework/observability) | PostHog, Sentry, and OpenTelemetry backends |
+| [Billing](/docs/framework/billing) | Account subscriptions, card or USDC checkout, entitlements |
 | [Admin panel](/docs/framework/admin-panel) | Creating and managing OAuth / OIDC clients |
+| [Roles and groups](/docs/framework/roles-and-groups) | Catalog roles/groups, token claims, PostHog flags |
 | [Client trust model](/docs/framework/client-trust-model) | Trust tiers, DCR defaults, scope gating |
 | [Invitations](/docs/framework/invitations) | better-invite setup, activate UI, admin invites |
 | [TypeScript: better-invite](/docs/framework/typescript-better-invite) | Plugin type shim used in this repo |
@@ -33,7 +36,12 @@ This kit is a fork of [daveyplate/better-auth-nextjs-starter](https://github.com
 |---|---|
 | `/auth/sign-in` | Sign-in UI |
 | `/account/*` | Account settings (Better Auth UI) |
+| `/account/billing` | Account subscription (when billing is enabled) |
+| `/pricing` | Public plan catalog (when billing is enabled) |
 | `/admin/clients` | OAuth client admin (admin role required) |
+| `/admin/users` | List users; set privilege and catalog roles/groups |
+| `/admin/roles` | Catalog roles for segmentation |
+| `/admin/groups` | User groups for segmentation |
 | `/admin/invites` | Create and manage user invites (admin role required) |
 | `/invite/activate/[token]` | Invite welcome page; accept or reject |
 | `/api/auth/*` | Better Auth API |

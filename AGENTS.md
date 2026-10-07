@@ -22,7 +22,9 @@ When the user asks to eject, sync the kit, or set up product vs starter branches
 | `kit/main` | Local upstream mirror (**never push**) |
 | `kit/sync/<topic>` | Short-lived kit → main merges (**never push**) |
 
-On eject: ask if a remote is available; if yes, push `main` → set as default → push `dev`. Remove `.cursor/rules/project-identity.mdc` on `main` only.
+On eject: create `dev` and `kit/main` at the same starter commit, then one linear eject commit on `main` (no merge). Ask if a remote is available; if yes, push `main` → set as default → push `dev`. Remove `.cursor/rules/project-identity.mdc` on `main` only.
+
+After eject, **sync**, **fetch updates**, and **fetch updates and suggestions** mean: refresh `kit/main` and `dev`, then suggest which commits to take and how each integrates. Apply only what was accepted. Skipping or adapting a suggestion is allowed; do not re-apply a skipped commit unless asked.
 
 ## Product docs (humans)
 

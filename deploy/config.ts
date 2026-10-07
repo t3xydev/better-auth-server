@@ -55,17 +55,34 @@ export const deployConfig = {
     ] as const,
 
     /**
+     * GHCR image published by `.github/workflows/release-image.yml`.
+     * Derived from `railway.githubRepo`. Railway and Dokploy pull `tag`
+     * (`latest`). Version-bump PRs publish the semver tag only; a GitHub
+     * Release from `railway.branch` also moves `tag`.
+     */
+    get releaseImage() {
+        const repository = `ghcr.io/${this.railway.githubRepo}`
+        const tag = "latest"
+        return {
+            repository,
+            tag,
+            ref: `${repository}:${tag}`
+        }
+    },
+
+    /**
      * Railway Infrastructure as Code (`.railway/railway.ts`).
      * `railway.toml` Config as Code is deprecated (cutoff 2026-12-01).
+     * The app service pulls `releaseImage`, it does not build from git.
      */
     railway: {
         /** Canvas / IaC project name */
         projectName: "BetterAuth Server",
         /** App service name on the Railway canvas */
         serviceName: "Better-Auth Server",
-        /** GitHub `owner/repo` for the app service source */
+        /** GitHub `owner/repo`. GHCR image is `ghcr.io/<owner>/<repo>`. */
         githubRepo: "t3xydev/better-auth-server",
-        /** Branch Railway deploys from */
+        /** Branch GitHub Releases are cut from */
         branch: "main",
         /** Postgres service name on the canvas */
         postgresName: "Postgres",

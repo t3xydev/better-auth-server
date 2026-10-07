@@ -23,7 +23,7 @@ This starter uses the community [better-invite](https://www.better-invite.com/) 
 
 - **Private invites** — include an email when creating; only that address can accept. An email is sent with a link to `/invite/activate/{token}`.
 - **Public invites** — omit the email; the admin UI returns a shareable URL (`senderResponse: "url"`).
-- **Who can create** — only users with `role === "admin"`, and only for roles `user` or `admin`.
+- **Who can create** — only users with `role === "admin"`, and only for privilege `user` or `admin`. Catalog roles and groups selected on the invite are added when the invite is accepted. They do not replace memberships the account already has, and they do not change privilege.
 - **Invite-only mode** — set `NEXT_PUBLIC_INVITE_ONLY=true` to block open registration. New accounts must start from an invite link (the welcome page sets the better-invite cookie, then sign-up consumes it). The cookie is checked against a still-valid pending invite — canceled or deleted invites cannot be used. The first user may still sign up with no invite so you can bootstrap an admin. Sign-in no longer links to public sign-up.
 - **Welcome page** — visiting the invite link opens an introduction for `{APPLICATION_NAME}` with invite metadata (role, private/public, invited email(s), expiry, status). Copy stays “You’ve been invited” by default; private invites can opt in to show the inviter name via **Show your name**. Guests continue to sign-in or sign-up; signed-in users Accept or Reject (private) / Decline (public — leaves without invalidating the shared link).
 - **Cancel** — pending invites use the plugin `cancel` endpoint with `cleanupInvitesOnDecision: true`, which removes the invite row.
@@ -33,7 +33,7 @@ This starter uses the community [better-invite](https://www.better-invite.com/) 
 
 1. Promote an admin (see [admin panel](/docs/framework/admin-panel)). With invite-only enabled, create the first account before (or as) the bootstrap user, then promote.
 2. Open **Admin → Invites** (`/admin/invites`).
-3. Click **New Invite**, choose a role, optionally set an email.
+3. Click **New Invite**, choose a privilege (`user` or `admin`), and optionally assign catalog roles and groups.
 4. For private invites, the recipient opens the email link, signs in if needed, and accepts.
 
 ## API (client)

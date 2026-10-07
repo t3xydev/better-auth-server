@@ -26,6 +26,7 @@ export const users = pgTable("users", {
   banReason: text("ban_reason"),
   banExpires: timestamp("ban_expires"),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  stripeCustomerId: text("stripe_customer_id"),
 });
 
 export const sessions = pgTable(
@@ -225,6 +226,190 @@ export const nostrPubkeys = pgTable(
   },
   (table) => [index("nostrPubkeys_userId_idx").on(table.userId)],
 );
+
+export const billingCustomers = pgTable(
+  "billing_customers",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerCustomerId: text("provider_customer_id").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingCustomer_userId_provider_uidx").on(
+      table.userId,
+      table.provider,
+    ),
+    uniqueIndex("billingCustomer_provider_providerCustomerId_uidx").on(
+      table.provider,
+      table.providerCustomerId,
+    ),
+  ],
+);
+
+export const billingSubscriptions = pgTable(
+  "billing_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerSubscriptionId: text("provider_subscription_id").notNull(),
+    productKey: text("product_key").notNull(),
+    priceKey: text("price_key").notNull(),
+    status: text("status").notNull(),
+    currentPeriodStart: timestamp("current_period_start"),
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end"),
+    canceledAt: timestamp("canceled_at"),
+    endedAt: timestamp("ended_at"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingSubscription_provider_providerSubscriptionId_uidx").on(
+      table.provider,
+      table.providerSubscriptionId,
+    ),
+    index("billingSubscription_userId_idx").on(table.userId),
+  ],
+);
+
+export const billingEntitlements = pgTable(
+  "billing_entitlements",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    status: text("status").notNull(),
+    expiresAt: timestamp("expires_at"),
+    sourceSubscriptionId: text("source_subscription_id"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingEntitlement_userId_key_uidx").on(
+      table.userId,
+      table.key,
+    ),
+  ],
+);
+
+export const billingWebhookEvents = pgTable(
+  "billing_webhook_events",
+  {
+    id: text("id").primaryKey(),
+    provider: text("provider").notNull(),
+    eventId: text("event_id").notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("billingWebhookEvent_provider_eventId_uidx").on(
+      table.provider,
+      table.eventId,
+    ),
+  ],
+);
+
+export const subscriptions = pgTable("subscriptions", {
+  id: text("id").primaryKey(),
+  plan: text("plan").notNull(),
+  referenceId: text("reference_id").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  status: text("status").default("incomplete").notNull(),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  cancelAt: timestamp("cancel_at"),
+  canceledAt: timestamp("canceled_at"),
+  endedAt: timestamp("ended_at"),
+  seats: integer("seats"),
+  billingInterval: text("billing_interval"),
+  stripeScheduleId: text("stripe_schedule_id"),
+});
+
+export const segmentRoles = pgTable("segment_roles", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  permissions: text("permissions").array(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const segmentRoleMembers = pgTable(
+  "segment_role_members",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => segmentRoles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("segmentRoleMembers_userId_roleId_uidx").on(
+      table.userId,
+      table.roleId,
+    ),
+    index("segmentRoleMembers_userId_idx").on(table.userId),
+    index("segmentRoleMembers_roleId_idx").on(table.roleId),
+  ],
+);
+
+export const groups = pgTable("groups", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+});
+
+export const groupMembers = pgTable(
+  "group_members",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    groupId: text("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("groupMembers_userId_groupId_uidx").on(
+      table.userId,
+      table.groupId,
+    ),
+    index("groupMembers_userId_idx").on(table.userId),
+    index("groupMembers_groupId_idx").on(table.groupId),
+  ],
+);
+
+export const inviteSegmentGrants = pgTable("invite_segment_grants", {
+  id: text("id").primaryKey(),
+  inviteId: text("invite_id")
+    .notNull()
+    .unique()
+    .references(() => invites.id, { onDelete: "cascade" }),
+  roleIds: text("role_ids").array().notNull(),
+  groupIds: text("group_ids").array().notNull(),
+});
 
 export const jwkss = pgTable("jwkss", {
   id: text("id").primaryKey(),
@@ -471,6 +656,11 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   invites: many(invites),
   inviteUses: many(inviteUses),
   nostrPubkeys: many(nostrPubkeys),
+  billingCustomers: many(billingCustomers),
+  billingSubscriptions: many(billingSubscriptions),
+  billingEntitlements: many(billingEntitlements),
+  segmentRoleMembers: many(segmentRoleMembers),
+  groupMembers: many(groupMembers),
   oauthClients: many(oauthClients),
   oauthRefreshTokens: many(oauthRefreshTokens),
   oauthAccessTokens: many(oauthAccessTokens),
@@ -542,6 +732,7 @@ export const invitesRelations = relations(invites, ({ one, many }) => ({
     references: [users.id],
   }),
   inviteUses: many(inviteUses),
+  inviteSegmentGrants: one(inviteSegmentGrants),
 }));
 
 export const inviteUsesRelations = relations(inviteUses, ({ one }) => ({
@@ -561,6 +752,79 @@ export const nostrPubkeysRelations = relations(nostrPubkeys, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const billingCustomersRelations = relations(
+  billingCustomers,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingCustomers.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const billingSubscriptionsRelations = relations(
+  billingSubscriptions,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingSubscriptions.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const billingEntitlementsRelations = relations(
+  billingEntitlements,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [billingEntitlements.userId],
+      references: [users.id],
+    }),
+  }),
+);
+
+export const segmentRolesRelations = relations(segmentRoles, ({ many }) => ({
+  segmentRoleMembers: many(segmentRoleMembers),
+}));
+
+export const segmentRoleMembersRelations = relations(
+  segmentRoleMembers,
+  ({ one }) => ({
+    users: one(users, {
+      fields: [segmentRoleMembers.userId],
+      references: [users.id],
+    }),
+    segmentRoles: one(segmentRoles, {
+      fields: [segmentRoleMembers.roleId],
+      references: [segmentRoles.id],
+    }),
+  }),
+);
+
+export const groupsRelations = relations(groups, ({ many }) => ({
+  groupMembers: many(groupMembers),
+}));
+
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
+  users: one(users, {
+    fields: [groupMembers.userId],
+    references: [users.id],
+  }),
+  groups: one(groups, {
+    fields: [groupMembers.groupId],
+    references: [groups.id],
+  }),
+}));
+
+export const inviteSegmentGrantsRelations = relations(
+  inviteSegmentGrants,
+  ({ one }) => ({
+    invites: one(invites, {
+      fields: [inviteSegmentGrants.inviteId],
+      references: [invites.id],
+    }),
+  }),
+);
 
 export const oauthClientsRelations = relations(oauthClients, ({ one, many }) => ({
   users: one(users, {

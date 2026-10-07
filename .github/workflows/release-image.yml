@@ -1,0 +1,106 @@
+# Publishes the Dockerfile to GHCR.
+# Version-bump PRs push :<version> only. A non-prerelease GitHub Release
+# whose commit is on main also moves :latest, which Railway and Dokploy pull.
+name: Release image
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - package.json
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-image-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'release' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.sha }}
+          fetch-depth: 0
+
+      - name: Resolve image tags
+        id: tags
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          version="$(jq -r .version package.json)"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "package.json version is not semver: $version"
+            exit 1
+          fi
+
+          push=false
+          tags="${image}:${version}"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch origin "$BASE_REF"
+            base="$(git show "origin/${BASE_REF}:package.json" | jq -r .version)"
+            if [ "$version" = "$base" ]; then
+              echo "package.json version unchanged ($version); not publishing"
+            else
+              echo "Version bump ${base} -> ${version}; publishing ${image}:${version}"
+              push=true
+            fi
+          else
+            git fetch origin main
+            if ! git merge-base --is-ancestor HEAD origin/main; then
+              echo "Release commit is not on main; refusing to publish"
+              exit 1
+            fi
+            release_version="${GITHUB_REF_NAME#v}"
+            if [ "$release_version" != "$version" ]; then
+              echo "Release tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+              exit 1
+            fi
+            push=true
+            if [ "$IS_PRERELEASE" = "true" ]; then
+              echo "Prerelease ${version}; publishing ${image}:${version} only"
+            else
+              tags="${tags},${image}:latest"
+              echo "Release ${version}; publishing ${image}:${version} and ${image}:latest"
+            fi
+          fi
+
+          echo "push=${push}" >> "$GITHUB_OUTPUT"
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        if: steps.tags.outputs.push == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.tags.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        if: steps.tags.outputs.push == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

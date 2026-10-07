@@ -19,13 +19,29 @@ Do not hand-edit generated files (`Dockerfile`, `.dockerignore`, `docker-compose
 
 | Target | Files | Notes |
 |--------|--------|--------|
-| **Railway** | `.railway/railway.ts` + `Dockerfile` | Dockerfile builder; healthcheck `/api/health` (2xx liveness) |
-| **Dokploy** | `docker-compose.yml` + `Dockerfile` | Traefik labels + `dokploy-network`; set `dokploy.domain` |
-| **Cloudflare** | `wrangler.jsonc` + `Dockerfile` (default) | **Containers** by default; switch to Workers in config |
+| **Railway** | `.railway/railway.ts` | Pulls `ghcr.io/<owner>/<repo>:latest`; healthcheck `/api/health` (2xx liveness) |
+| **Dokploy** | `docker-compose.yml` | Same image, `pull_policy: always`; set `dokploy.domain` |
+| **Cloudflare** | `wrangler.jsonc` + `Dockerfile` (default) | **Containers** by default; still builds the Dockerfile |
 
-Shared container behavior: image build runs `pnpm build` only. On start, `pnpm start` applies pending Drizzle migrations and then serves Next.js, so `DATABASE_URL` is required at **runtime**, not image-build time.
+Railway and Dokploy pull the GHCR image. Cloudflare Containers still builds `Dockerfile`. The image build runs `pnpm build` only. On start, `pnpm start` applies pending Drizzle migrations and then serves Next.js, so `DATABASE_URL` is required at **runtime**, not image-build time.
 
-Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)).
+### Release image
+
+[`.github/workflows/release-image.yml`](../../.github/workflows/release-image.yml) publishes `linux/amd64` to `ghcr.io/<owner>/<repo>` (this repo: `ghcr.io/t3xydev/better-auth-server`). The repository comes from `railway.githubRepo` in [`deploy/config.ts`](../deploy/config.ts).
+
+| Event | Tags pushed |
+|--------|-------------|
+| Pull request to `main` that changes `package.json` `version` | `:<version>` only |
+| GitHub **prerelease** whose commit is on `main` | `:<version>` only |
+| GitHub **Release** from `main` (not a prerelease) | `:<version>` and `:latest` |
+
+The release tag (leading `v` stripped) must match `package.json` `version`, and that commit must be on `main`. A version-bump PR does not move `:latest`, so production does not change until you publish the Release.
+
+Pushes to `main` that are not a Release do not roll Railway. After `railway config apply`, turn on [image auto-updates](https://docs.railway.com/deployments/image-auto-updates) for the service (Anytime, or a maintenance window). Railway then redeploys when the `:latest` digest changes. Detection can lag a few hours.
+
+A public GHCR package pulls with no registry credential. A private package needs a Railway Pro registry credential: a GitHub personal access token with `read:packages`. Dokploy fetches the same tag on each deploy (`pull_policy: always`).
+
+Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)). Optional billing vars (`NEXT_PUBLIC_BILLING_ENABLED`, Stripe / Zoneless keys, price IDs) are `preserve()`d on Railway so Dashboard values survive IaC apply — see [billing](/docs/framework/billing).
 
 ### Railway
 
@@ -35,19 +51,19 @@ Railway [Config as Code](https://docs.railway.com/config-as-code) (`railway.toml
 2. Link the project: `railway link`.
 3. Preview / apply canvas + service settings: `railway config plan` then `railway config apply`.
 4. Confirm `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `DATABASE_URL` (IaC wires Postgres/Redis refs; secrets use `preserve()`). Do **not** set a custom `PORT` — Railway injects it for healthchecks and public networking.
-5. Deploy from `main`. Healthcheck is `/api/health` (always **2xx** when the process is up). For DB readiness probes use `/api/health?ready=1`.
-6. Point the public domain at the service (Railway maps the injected `PORT`). Clear leftover dashboard settings from older templates (Railpack build command, healthcheck `/health`, forced port mismatches, app sleeping) — those fight the Dockerfile / IaC settings and fail the deploy.
+5. The service source is `ghcr.io/t3xydev/better-auth-server:latest`, not a git build. Turn on image auto-updates so a Release that moves `:latest` rolls production. Healthcheck is `/api/health` (always **2xx** when the process is up). For DB readiness probes use `/api/health?ready=1`.
+6. Point the public domain at the service (Railway maps the injected `PORT`). Clear leftover dashboard settings from older templates (Railpack or Dockerfile build command, healthcheck `/health`, forced port mismatches, app sleeping) — those fight the image / IaC settings and fail the deploy.
 
 The Docker runner image must include `source.config.ts`, a writable `.source` directory, and `docs/framework`. fumadocs-mdx recompiles `source.config.mjs` into `.source` on every `next start`; if that directory is root-owned, the process crashes with permission denied.
 
 ### Dokploy
 
 1. Set `dokploy.domain` (and optionally `dokploy.routerName`) in `deploy/config.ts`, then `pnpm deploy:sync`.
-2. Create a **Compose** service; Compose path `./docker-compose.yml`.
-3. Set the required env vars in Dokploy.
-4. Deploy. Traefik uses the Host rule from config.
+2. Create a **Compose** service; Compose path `./docker-compose.yml`. The service pulls `ghcr.io/t3xydev/better-auth-server:latest` (`pull_policy: always`).
+3. Set the required env vars in Dokploy. If the GHCR package is private, add registry credentials.
+4. Deploy. Traefik uses the Host rule from config. Redeploy after a Release to fetch the new `:latest` digest.
 
-You can also deploy as a single **Dockerfile** app (path `./Dockerfile`) without Compose if you manage domains in the Dokploy UI.
+You can also run the same image as a single app in the Dokploy UI if you manage domains there. Cloudflare still builds `Dockerfile` and does not use this image.
 
 ### Cloudflare
 

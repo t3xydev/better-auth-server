@@ -1,0 +1,136 @@
+---
+title: "Billing"
+description: "Account-scoped subscriptions and entitlements, with card and USDC processors."
+---
+
+> Part of the [docs index](/docs/framework). Related: [features](/docs/framework/features) · [environment variables](/docs/framework/environment-variables) · [client trust](/docs/framework/client-trust-model).
+
+This identity host is the billing platform. Users subscribe on **their account here**. Other apps only ask whether the account is entitled — they never talk to the payment processor and never see customer IDs.
+
+Sign-in stays free. A subscription is an add-on, not a login gate.
+
+One **Premium** plan, two ways to pay: **card** (Stripe) and **USDC** (Zoneless). Do not add a second plan for USDC. Access is stored in the same entitlement rows regardless of processor. A user may have only **one** open subscription at a time.
+
+## Local development
+
+`pnpm dev` shows `/pricing` and `/account/billing` **without** processor keys. The catalog uses placeholder Premium monthly/yearly plans, and a **Card / USDC** toggle runs a keyless mock: checkout writes a local subscription and entitlement so the rest of the app can be developed before secrets exist.
+
+Hosted checkout stays disabled for a processor until its secrets and Price IDs are set. Production never uses the mock (`NODE_ENV === "production"`). Set `NEXT_PUBLIC_BILLING_ENABLED=false` to hide those routes locally.
+
+## Enable
+
+Set `NEXT_PUBLIC_BILLING_ENABLED=true` and configure at least one processor.
+
+```bash
+NEXT_PUBLIC_BILLING_ENABLED=true
+# optional default toggle: stripe | zoneless
+BILLING_PROVIDER=stripe
+
+STRIPE_SECRET_KEY=rk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+BILLING_STRIPE_PRICE_PREMIUM_MONTHLY=price_...
+BILLING_STRIPE_PRICE_PREMIUM_YEARLY=price_...
+
+ZONELESS_API_KEY=sk_...
+ZONELESS_API_URL=https://zoneless.example.com
+ZONELESS_WEBHOOK_SECRET=whsec_...
+BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY=price_...
+BILLING_ZONELESS_PRICE_PREMIUM_YEARLY=price_...
+
+# optional first-subscribe trial
+BILLING_TRIAL_DAYS=14
+```
+
+Prefer a [restricted API key](https://docs.stripe.com/keys/restricted-api-keys.md) (`rk_` prefix) over a secret key for Stripe.
+
+Create **one Product per plan** in each processor (this starter ships `premium`). Attach monthly and yearly **Prices**, then paste the Price IDs into env. Adding another plan is catalog + env — not a schema change.
+
+`ZONELESS_API_URL` is the origin of **your** Zoneless API (no trailing `/v1` — the SDK adds it). Until that server is deployed, `next dev` uses the USDC mock. After it is up, set the key, origin, webhook secret, and Price IDs; hosted USDC checkout and webhooks talk to that instance.
+
+Then run `pnpm db:sync` locally if you have not already applied the billing migrations, and commit the SQL.
+
+USDC checkout is not production-ready until those secrets, a webhook on your Zoneless instance, and a supervised subscription are in place.
+
+## Surfaces
+
+| Path | Who | Purpose |
+|------|-----|---------|
+| `/account/billing` | Signed-in user | Status, payment-method choice, subscribe, manage / cancel |
+| `/pricing` | Public | Catalog + link to billing |
+| `GET /api/auth/billing/catalog` | Anyone | Publishable plans (no secrets) |
+| `GET /api/auth/billing/subscription` | Session | Current subscription + entitlements |
+| `POST /api/auth/billing/checkout` | Session | Hosted checkout URL (`priceKey` + `provider`) |
+| `POST /api/auth/billing/portal` | Session | Card customer portal (live Stripe only) |
+| `POST /api/auth/billing/cancel` | Session | Cancel with the owning processor |
+| `POST /api/auth/stripe/webhook` | Stripe plugin | Canonical card subscription sync |
+| `POST /api/auth/billing/webhook` | Stripe | Still updates shared entitlements if an older endpoint is left in place |
+| `POST /api/auth/billing/webhook/zoneless` | Zoneless | Canonical USDC subscription sync |
+
+v1 allows **one concurrent active / trialing / past due subscription per user**. Switching payment method requires the current subscription to cancel or reach period end first.
+
+## Webhooks
+
+Card checkout, the customer portal, and card webhooks go through the Stripe plugin. That plugin keeps its own customer and subscription rows. Entitlements still come from the shared billing tables, which the Zoneless adapter writes as well.
+
+Point a Stripe webhook endpoint at:
+
+```text
+{BETTER_AUTH_URL}/api/auth/stripe/webhook
+```
+
+`POST /api/auth/billing/webhook` still accepts the same Stripe events and updates those shared tables. It does not update the plugin's own subscription row. Use `/api/auth/stripe/webhook` so both stay in sync.
+
+Point a Zoneless webhook endpoint at:
+
+```text
+{BETTER_AUTH_URL}/api/auth/billing/webhook/zoneless
+```
+
+Subscribe at least:
+
+- `checkout.session.completed`
+- `customer.subscription.created`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+- `invoice.paid`
+- `invoice.payment_failed`
+
+Use the signing secrets as `STRIPE_WEBHOOK_SECRET` and `ZONELESS_WEBHOOK_SECRET`. Locally, the Stripe CLI can forward events to `/api/auth/stripe/webhook`. On your Zoneless instance, register `{BETTER_AUTH_URL}/api/auth/billing/webhook/zoneless` for the same event types. Duplicate deliveries are ignored by recorded `event.id`.
+
+The success redirect is not the source of truth. Entitlements are granted from verified webhooks (or, in `next dev` mock, from the checkout handler itself).
+
+## Entitlements for client apps
+
+OAuth / OIDC clients request the public `entitlements` scope. UserInfo and access tokens then include:
+
+```json
+{
+  "entitlements": ["premium"],
+  "subscription": {
+    "status": "active",
+    "product": "premium",
+    "currentPeriodEnd": "2026-10-14T00:00:00.000Z"
+  }
+}
+```
+
+ID tokens stay small (no billing claims). Purchase and portal stay on this host — session cookies only.
+
+Status mapping (payment-retry grace, similar to platform stores):
+
+| Processor status | Entitlement |
+|------------------|--------------|
+| `trialing`, `active` | `active` |
+| `past_due` | `grace` (still entitled) |
+| `canceled` with time remaining | `active` until period end |
+| `unpaid`, ended, expired | `expired` |
+
+## Tax
+
+If you charge card customers in the US or EU, enable [Stripe Tax for recurring payments](https://docs.stripe.com/billing/taxes/collect-taxes.md) in the Dashboard **after** you have an active tax registration. This starter does not turn `automatic_tax` on by itself — without a registration Stripe calculates no tax and returns no error.
+
+USDC amounts are the plan price in minor units; tax handling for that processor belongs in its dashboard, not this app.
+
+## Later processors
+
+Subscriptions and entitlements are stored in processor-agnostic tables (`billing_customers`, `billing_subscriptions`, `billing_entitlements`). The card adapter is the Stripe plugin; USDC stays the Zoneless adapter. Both write the same entitlement rows. The plugin's `user.stripeCustomerId` and `subscription` table are card-only and are not what client apps read. Organization / seat billing is not in this release.

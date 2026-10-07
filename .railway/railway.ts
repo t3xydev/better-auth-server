@@ -2,10 +2,11 @@
 // Railway Infrastructure as Code — plan/apply with the Railway CLI:
 //   railway link && railway config plan && railway config apply
 // Do not add railway.toml (Config as Code is deprecated).
+// App source is the GHCR image (ghcr.io/t3xydev/better-auth-server:latest). Releases from main move that tag.
 import {
     defineRailway,
-    github,
     group,
+    image,
     postgres,
     preserve,
     project,
@@ -18,14 +19,8 @@ export default defineRailway(() => {
     const cache = redis("Redis")
 
     const app = service("Better-Auth Server", {
-        source: github("t3xydev/better-auth-server", { branch: "main" }),
-        build: {
-            builder: "DOCKERFILE",
-            dockerfilePath: "Dockerfile",
-            // Image build must not need DATABASE_URL (migrate runs in CMD).
-            buildCommand: null
-        },
-        // Omit start — Dockerfile CMD runs `pnpm start` (migrate + next start).
+        source: image("ghcr.io/t3xydev/better-auth-server:latest"),
+        // Omit start — image CMD runs `pnpm start` (migrate + next start).
         healthcheck: "/api/health",
         healthcheckTimeout: 300,
         deploy: {
@@ -46,7 +41,19 @@ export default defineRailway(() => {
             APPLICATION_NAME: preserve(),
             BETTER_AUTH_API_KEY: preserve(),
             BETTER_AUTH_IDENTIFY_URL: preserve(),
-            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve()
+            NEXT_PUBLIC_ORGANIZATIONS_ENABLED: preserve(),
+            NEXT_PUBLIC_BILLING_ENABLED: preserve(),
+            BILLING_PROVIDER: preserve(),
+            STRIPE_SECRET_KEY: preserve(),
+            STRIPE_WEBHOOK_SECRET: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_STRIPE_PRICE_PREMIUM_YEARLY: preserve(),
+            BILLING_TRIAL_DAYS: preserve(),
+            ZONELESS_API_KEY: preserve(),
+            ZONELESS_API_URL: preserve(),
+            ZONELESS_WEBHOOK_SECRET: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_MONTHLY: preserve(),
+            BILLING_ZONELESS_PRICE_PREMIUM_YEARLY: preserve()
         }
     })
 
