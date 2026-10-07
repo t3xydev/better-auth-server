@@ -9,11 +9,11 @@
 </p>
 
 <p align="center">
-  <em>Fork of <a href="https://github.com/daveyplate/better-auth-nextjs-starter">daveyplate/better-auth-nextjs-starter</a> · by <a href="https://t3xy.dev">t3xy.dev</a></em>
+  <a href="https://t3xy.dev">t3xy.dev</a>
 </p>
 
 <p align="center">
-  <a href="https://betterauth-starterkit.t3xy.dev/"><img src="https://img.shields.io/badge/live%20demo-t3xy.dev-0B1220?style=flat-square" alt="Live demo" /></a>
+  <a href="https://better-auth-server.t3xy.dev/"><img src="https://img.shields.io/badge/live%20demo-t3xy.dev-0B1220?style=flat-square" alt="Live demo" /></a>
   <a href="#quick-start"><img src="https://img.shields.io/badge/quick%20start-3%20commands-0d9488?style=flat-square" alt="Quick start" /></a>
   <a href="https://better-auth.com"><img src="https://img.shields.io/badge/Better%20Auth-1.7-black?style=flat-square" alt="Better Auth" /></a>
   <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square" alt="Next.js" /></a>
@@ -22,8 +22,8 @@
 </p>
 
 <p align="center">
-  <a href="https://betterauth-starterkit.t3xy.dev/"><strong>Live demo</strong></a> ·
-  <a href="https://betterauth-starterkit.t3xy.dev/docs/framework">Docs</a> ·
+  <a href="https://better-auth-server.t3xy.dev/"><strong>Live demo</strong></a> ·
+  <a href="https://better-auth-server.t3xy.dev/docs/framework">Docs</a> ·
   <a href="https://t3xy.dev">t3xy.dev</a> ·
   <a href="docs/framework/product.mdx">Product</a> ·
   <a href="docs/framework/getting-started.mdx">Getting started</a> ·
@@ -44,7 +44,7 @@ A framework and starter for an **authorization server you own**. The Next.js app
 
 Postgres, migrations, SMTP (or a console mailer), branding from env vars, and `/api/health` are included. Clone it, set three variables, migrate, deploy.
 
-**Live demo:** [https://betterauth-starterkit.t3xy.dev/](https://betterauth-starterkit.t3xy.dev/)
+**Live demo:** [https://better-auth-server.t3xy.dev/](https://better-auth-server.t3xy.dev/)
 
 ## What ships
 
@@ -183,8 +183,6 @@ Same account model, both usage modes:
 Ideas and PRs: [CONTRIBUTING.md](CONTRIBUTING.md) and [product](docs/framework/product.mdx).
 
 ## Credits
-
-Forked from [daveyplate/better-auth-nextjs-starter](https://github.com/daveyplate/better-auth-nextjs-starter).
 
 Maintained at [t3xy.dev](https://t3xy.dev). Built on [Better Auth](https://www.better-auth.com).
 
