@@ -1,10 +1,11 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="Better Auth Server" width="100%" />
+  <img src="docs/assets/banner.svg" alt="Better Auth Server — your own OpenID Connect issuer" width="100%" />
 </p>
 
 <p align="center">
-  <strong>Your own OpenID / OAuth identity server, on Better Auth.</strong><br />
-  Open, federated, decentralized — OIDC IdP · Nostr · wallets planned · extend the app or run accounts-style
+  <strong>Your own OpenID Connect / OAuth identity server, on Better Auth.</strong><br />
+  Run the issuer. Other apps sign in through standard OAuth 2.1 / OIDC.<br />
+  Email, passkeys, and Nostr today. Bluesky and wallet identity on the roadmap.
 </p>
 
 <p align="center">
@@ -27,55 +28,41 @@
   <a href="docs/framework/product.mdx">Product</a> ·
   <a href="docs/framework/getting-started.mdx">Getting started</a> ·
   <a href="docs/framework/features.mdx">Features</a> ·
-  <a href="docs/framework/deployment.mdx">Deploy</a> ·
-  <a href="docs/framework/environment-variables.mdx">Env vars</a> ·
-  <a href="docs/framework/admin-panel.mdx">Admin panel</a>
+  <a href="docs/framework/deployment.mdx">Deploy</a>
 </p>
 
 ---
 
-## Why this exists
+## What this is
 
-Most auth starters stop at “sign in works locally.” This kit is a **framework + starter** for shipping your **own identity / OpenID Connect server** — a shared issuer other apps authenticate against.
-
-The direction is a more **open, federated, and decentralized** future: standards-based OAuth / OIDC you control, plus first-class paths for protocol and wallet identity (Nostr today; Bluesky, Bitcoin Connect, Lightning, ETH planned) instead of locking users into a single closed login silo.
-
-You get Postgres + migrations, OIDC discovery, consent, an admin UI for OAuth clients, SMTP, branding via env vars, and a health check your host can probe. Clone it, set three variables, migrate, deploy.
-
-**Two ways to use it:**
+A framework and starter for an **authorization server you own**. The Next.js app is the identity host: sign-in UI, OAuth / OIDC endpoints, discovery, consent, and admin. Other products authenticate against it. It is built for two setups, and both are intentional.
 
 | Mode | What you do |
 |---|---|
-| **Extend the template** | Keep this Next.js app, build product UI here, run frontend + auth together |
+| **Extend the template** | Keep this app and grow product UI on the same deploy |
 | **Accounts-style IdP** | Deploy this as the accounts host; other apps are separate OAuth / OIDC clients |
+
+Postgres, migrations, SMTP (or a console mailer), branding from env vars, and `/api/health` are included. Clone it, set three variables, migrate, deploy.
 
 **Live demo:** [https://betterauth-starterkit.t3xy.dev/](https://betterauth-starterkit.t3xy.dev/)
 
-## What’s included
+## What ships
 
 | Capability | Status |
 |---|---|
-| Email & password + verification / reset | Ready |
-| **OAuth 2.1 / OpenID Connect provider** | Ready |
-| Passkeys (WebAuthn) | Ready |
-| Two-factor authentication (TOTP) | Ready |
-| User invitations | Ready |
-| Organizations (members, roles, invites) | Opt-in (`NEXT_PUBLIC_ORGANIZATIONS_ENABLED`) |
-| Nostr sign-in + key linking | Ready |
-| Billing (account-scoped subscriptions) | Opt-in (`NEXT_PUBLIC_BILLING_ENABLED`) |
-| Bluesky (AT Proto) identity | Planned |
-| Bitcoin Connect | Planned |
-| Lightning | Planned |
-| Ethereum (wallet / SIWE-style) | Planned |
-| Admin role + **OAuth client management UI** | Ready |
-| OpenAPI docs for the auth API | Ready |
-| SMTP email (or console fallback) | Ready |
-| Branding & theme via environment variables | Ready |
-| PostHog analytics (optional) | Ready |
-| Health endpoint (`/api/health`) | Ready |
-| Better Auth Dash / Sentinel / DevTools | Ready |
+| Email code sign-in, plus email & password | Ready |
+| OAuth 2.1 / OpenID Connect provider, discovery, consent | Ready |
+| Passkeys (WebAuthn) and TOTP two-factor | Ready |
+| Nostr sign-in and key linking | Ready |
+| User invitations (invite-only is opt-in) | Ready |
+| Organizations | Opt-in (`NEXT_PUBLIC_ORGANIZATIONS_ENABLED`) |
+| Account billing — card or USDC | Opt-in (`NEXT_PUBLIC_BILLING_ENABLED`) |
+| Admin UI for users, roles, groups, and OAuth clients | Ready |
+| Client trust tiers for dynamic registration | Ready |
+| OpenAPI reference, health check, optional PostHog / Sentry / OpenTelemetry | Ready |
+| Bluesky (AT Proto), Bitcoin Connect, Lightning, Ethereum | Planned |
 
-Full breakdown → [docs/framework/features.mdx](docs/framework/features.mdx) · product framing → [docs/framework/product.mdx](docs/framework/product.mdx)
+Details: [features](docs/framework/features.mdx) · [product](docs/framework/product.mdx) · [client trust](docs/framework/client-trust-model.mdx)
 
 ## Stack
 
@@ -86,7 +73,7 @@ Full breakdown → [docs/framework/features.mdx](docs/framework/features.mdx) ·
 
 ## Quick start
 
-**1. Clone & install**
+**1. Clone and install**
 
 ```bash
 git clone https://github.com/t3xydev/better-auth-server.git
@@ -108,20 +95,20 @@ BETTER_AUTH_URL="http://localhost:3000"
 DATABASE_URL="postgresql://user:pass@localhost:5432/better_auth"
 ```
 
-See [environment variables](docs/framework/environment-variables.mdx) for SMTP, branding, OAuth, PostHog, and trusted origins.
+SMTP, branding, OAuth, billing, and observability are in [environment variables](docs/framework/environment-variables.mdx).
 
-**3. Sync the database & run**
+**3. Sync the database and run**
 
 ```bash
-pnpm db:sync   # generate schema → migrations → apply
+pnpm db:sync   # generate schema, write migrations, apply them
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — you’ll land on sign-in.
+Open [http://localhost:3000](http://localhost:3000). You land on sign-in.
 
 > First admin: sign up, then `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`  
-> With `NEXT_PUBLIC_INVITE_ONLY=true`, the first user can still sign up to bootstrap; later sign-ups need an invite — [invitations](docs/framework/invitations.mdx).  
-> Details in [admin panel docs](docs/framework/admin-panel.mdx).
+> With `NEXT_PUBLIC_INVITE_ONLY=true`, the first user can still sign up. Later sign-ups need an invite — [invitations](docs/framework/invitations.mdx).  
+> Admin UI: [admin panel](docs/framework/admin-panel.mdx).
 
 ## Deploy
 
@@ -131,14 +118,14 @@ Synced targets (Cloudflare Containers, Railway, Dokploy) live in [`deploy/config
 pnpm deploy:sync
 ```
 
-| Setting | Classic hosts (Render, Fly, …) | Railway / Dokploy | Cloudflare Containers |
+| Setting | Classic hosts | Railway / Dokploy | Cloudflare Containers |
 |---|---|---|---|
 | **Build** | `pnpm build` | Pull `ghcr.io/<owner>/<repo>:latest` | Image: `pnpm build` |
 | **Start** | `pnpm start` | `pnpm start` (image CMD) | `pnpm start` |
 
-A version-bump PR publishes the semver tag. A GitHub Release from `main` also moves `:latest`, which Railway (image auto-updates) and Dokploy (`pull_policy: always`) fetch.
+A version-bump PR publishes the semver tag. A GitHub Release from `main` also moves `:latest`. Railway image auto-updates and Dokploy (`pull_policy: always`) fetch that tag.
 
-`pnpm start` and `pnpm dev` apply pending migrations before the server listens (`DATABASE_URL` required at **start**). Platform notes → [docs/framework/deployment.mdx](docs/framework/deployment.mdx).
+`pnpm start` and `pnpm dev` apply pending migrations before the server listens. `DATABASE_URL` is required at start. Host notes: [deployment](docs/framework/deployment.mdx).
 
 ```mermaid
 flowchart LR
@@ -149,6 +136,7 @@ flowchart LR
   E --> F[start migrates then serves]
   F --> G[Auth server live]
 ```
+
 ## Project layout
 
 ```text
@@ -162,33 +150,38 @@ src/
     └── email.ts         # SMTP / console mailer
 deploy/                  # Shared deploy config + sync (Railway / Dokploy / Cloudflare)
 docs/
-├── assets/              # README / marketing assets (banner)
+├── assets/              # README banner
 └── framework/           # Canonical docs (Fumadocs; /docs/framework when enabled)
 migrations/              # Committed Drizzle SQL (required for deploys)
 ```
+
 ## Documentation
 
-Canonical source: [`docs/framework`](docs/framework). In-app site at `/docs/framework` when `NEXT_PUBLIC_DOCS_ENABLED=true`.
+Canonical source: [`docs/framework`](docs/framework). The in-app site is at `/docs/framework` when `NEXT_PUBLIC_DOCS_ENABLED=true`.
 
-| Guide | Description |
+| Guide | When you need it |
 |---|---|
-| [Product](docs/framework/product.mdx) | IdP framing, dual usage modes, planned identity |
-| [Getting started](docs/framework/getting-started.mdx) | Local setup walkthrough |
-| [Features](docs/framework/features.mdx) | Plugins, endpoints, and what ships out of the box |
-| [Deployment](docs/framework/deployment.mdx) | Railway / Dokploy / Cloudflare sync + classic hosts |
-| [Environment variables](docs/framework/environment-variables.mdx) | Full env reference |
-| [Billing](docs/framework/billing.mdx) | Account subscriptions and entitlements |
-| [Admin panel](docs/framework/admin-panel.mdx) | Manage OAuth clients |
-| [Docs index](docs/framework/index.mdx) | Everything in one place |
+| [Product](docs/framework/product.mdx) | IdP framing, the two usage modes, planned identity methods |
+| [Getting started](docs/framework/getting-started.mdx) | Local setup |
+| [Features](docs/framework/features.mdx) | Plugins, endpoints, defaults |
+| [Deployment](docs/framework/deployment.mdx) | Railway, Dokploy, Cloudflare, and classic hosts |
+| [Environment variables](docs/framework/environment-variables.mdx) | Secrets, SMTP, branding, flags |
+| [Billing](docs/framework/billing.mdx) | Subscriptions, card or USDC, entitlements |
+| [Admin panel](docs/framework/admin-panel.mdx) | OAuth clients |
+| [Roles and groups](docs/framework/roles-and-groups.mdx) | Catalog roles, groups, token claims |
+| [Client trust model](docs/framework/client-trust-model.mdx) | Trust tiers, dynamic registration, scopes |
+| [Invitations](docs/framework/invitations.mdx) | Invites and invite-only registration |
+| [Observability](docs/framework/observability.mdx) | PostHog, Sentry, OpenTelemetry |
 
 ## Roadmap
 
-Planned on the same account / IdP model (works in both usage modes):
+Same account model, both usage modes:
 
-- Bluesky (AT Proto) sign-in + linking  
+- Bluesky (AT Proto) sign-in and linking
 - Bitcoin Connect, Lightning, and Ethereum wallet identity
 
-Ideas and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/framework/product.mdx](docs/framework/product.mdx).
+Ideas and PRs: [CONTRIBUTING.md](CONTRIBUTING.md) and [product](docs/framework/product.mdx).
+
 ## Credits
 
 Forked from [daveyplate/better-auth-nextjs-starter](https://github.com/daveyplate/better-auth-nextjs-starter).
