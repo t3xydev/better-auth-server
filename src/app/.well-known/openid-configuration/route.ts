@@ -10,4 +10,4 @@ const getOpenIdConfig = oauthProviderOpenIdConfigMetadata(auth)
 export const OPTIONS = discoveryOptionsResponse
 
 export const GET = async (request: Request) =>
-    advertisePublicClientTokenAuth(await getOpenIdConfig(request))
+    advertisePublicClientTokenAuth(await getOpenIdConfig(request), request)

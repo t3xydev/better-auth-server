@@ -11,5 +11,6 @@ export const OPTIONS = discoveryOptionsResponse
 
 export const GET = async (request: Request) =>
     advertisePublicClientTokenAuth(
-        await getAuthorizationServerMetadata(request)
+        await getAuthorizationServerMetadata(request),
+        request
     )

@@ -38,6 +38,7 @@ export default defineRailway(() => {
             REDIS_URL: cache.env.REDIS_URL,
             BETTER_AUTH_SECRET: preserve(),
             BETTER_AUTH_URL: preserve(),
+            BETTER_AUTH_TRUSTED_ORIGINS: preserve(),
             APPLICATION_NAME: preserve(),
             BETTER_AUTH_API_KEY: preserve(),
             BETTER_AUTH_IDENTIFY_URL: preserve(),

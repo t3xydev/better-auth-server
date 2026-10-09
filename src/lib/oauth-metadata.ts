@@ -1,26 +1,34 @@
+import { corsAllowOrigin } from "@/lib/trusted-origins"
+
 const PUBLIC_CLIENT_AUTH_METHOD = "none"
 
-export const discoveryCorsHeaders = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS"
-} as const
+export function discoveryCorsHeaders(request: Request): Record<string, string> {
+    const allowOrigin = corsAllowOrigin(request)
+    return {
+        "Access-Control-Allow-Origin": allowOrigin,
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        Vary: "Origin"
+    }
+}
 
-export function discoveryOptionsResponse() {
+export function discoveryOptionsResponse(request: Request) {
     return new Response(null, {
         status: 204,
-        headers: discoveryCorsHeaders
+        headers: discoveryCorsHeaders(request)
     })
 }
 
-function withDiscoveryCors(headers: Headers): Headers {
+function withDiscoveryCors(headers: Headers, request: Request): Headers {
     const next = new Headers(headers)
-    next.set("Access-Control-Allow-Origin", "*")
-    next.set("Access-Control-Allow-Methods", "GET, OPTIONS")
+    for (const [key, value] of Object.entries(discoveryCorsHeaders(request))) {
+        next.set(key, value)
+    }
     return next
 }
 
 export async function advertisePublicClientTokenAuth(
-    response: Response
+    response: Response,
+    request: Request
 ): Promise<Response> {
     const metadata = (await response.json()) as Record<string, unknown>
     const configuredMethods = Array.isArray(
@@ -46,7 +54,7 @@ export async function advertisePublicClientTokenAuth(
         {
             status: response.status,
             statusText: response.statusText,
-            headers: withDiscoveryCors(response.headers)
+            headers: withDiscoveryCors(response.headers, request)
         }
     )
 }
