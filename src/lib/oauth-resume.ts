@@ -23,6 +23,8 @@ const AUTH_FLOW_PATHS = [
 export type OAuthContinueResponse = {
     redirect?: boolean
     url?: string
+    /** Present on completed sign-in responses that are not an OAuth redirect. */
+    session?: unknown
 } | null
 
 function pathnameOf(href: string): string {
