@@ -28,6 +28,8 @@ export function Providers({ children }: { children: ReactNode }) {
                 defaultTheme="system"
                 enableSystem
                 disableTransitionOnChange
+                // Fresh key so a theme saved by the removed toggle is ignored.
+                storageKey="bas-color-scheme"
             >
                 <RootProvider theme={{ enabled: false }}>
                     <AuthUIProvider

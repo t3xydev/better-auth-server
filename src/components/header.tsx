@@ -7,7 +7,6 @@ import { auth } from "@/lib/auth"
 import { docsBasePath, docsEnabled } from "@/lib/docs"
 import { showGithub } from "@/lib/github-link"
 import { HeaderUserMenu } from "./header-user-menu"
-import { ModeToggle } from "./mode-toggle"
 import { Button } from "./ui/button"
 
 export async function Header() {
@@ -72,7 +71,6 @@ export async function Header() {
                     </Link>
                 )}
 
-                <ModeToggle />
                 <HeaderUserMenu />
             </div>
         </header>
