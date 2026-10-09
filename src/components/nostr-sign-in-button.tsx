@@ -6,6 +6,7 @@ import { useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { followOAuthContinue } from "@/lib/oauth-resume"
 import { Button } from "./ui/button"
 
 export function NostrSignInButton() {
@@ -36,6 +37,8 @@ export function NostrSignInButton() {
                 setIsPending(false)
                 return
             }
+
+            if (followOAuthContinue(result.data)) return
 
             navigate(redirectTo)
         } catch {

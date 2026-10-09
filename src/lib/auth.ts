@@ -2,7 +2,6 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { dash, sentinel } from "@better-auth/infra"
 import { oauthProvider } from "@better-auth/oauth-provider"
 import { getAuthenticatorName, passkey } from "@better-auth/passkey"
-import { dbsc } from "@dbsc-toolkit/better-auth"
 import { type BetterAuthPlugin, betterAuth } from "better-auth"
 import { memoryAdapter } from "better-auth/adapters/memory"
 import { APIError, createAuthMiddleware } from "better-auth/api"
@@ -21,6 +20,7 @@ import { nostr } from "better-auth-nostr"
 import { invite } from "better-invite"
 import { db } from "@/database/db"
 import * as schema from "@/database/schema"
+import { dbscPlugin } from "@/lib/plugins/dbsc"
 import { emailCodeLogin } from "@/lib/plugins/email-code-login"
 import { nostrLink } from "@/lib/plugins/nostr-link"
 import { entitlementClaimsForUser } from "@/modules/billing/entitlements"
@@ -64,7 +64,7 @@ const defaultResource = (process.env.OAUTH_AUDIENCE || authOrigin).replace(
 )
 
 export const auth = betterAuth({
-    // baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    baseURL: authOrigin,
     appName: process.env.APPLICATION_NAME || "Better Auth Server",
     trustedOrigins: trustedOrigins(),
     onAPIError: { errorURL: "/auth/error" },
@@ -370,7 +370,7 @@ export const auth = betterAuth({
                 }
             }
         } satisfies BetterAuthPlugin,
-        dbsc() as BetterAuthPlugin,
+        dbscPlugin(),
         devtools({
             enabled: true,
             templates: {

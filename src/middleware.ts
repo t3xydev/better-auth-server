@@ -1,6 +1,8 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
+import { loggedInAuthRouteRedirect } from "@/lib/oauth-resume"
+
 const authRoutes = ["/auth/sign-in", "/auth/password", "/auth/sign-up"]
 const protectedPrefixes = ["/account", "/admin"]
 
@@ -12,7 +14,12 @@ export async function middleware(request: NextRequest) {
         sessionCookie &&
         authRoutes.some((route) => pathname.startsWith(route))
     ) {
-        return NextResponse.redirect(new URL("/account/settings", request.url))
+        return NextResponse.redirect(
+            new URL(
+                loggedInAuthRouteRedirect(request.nextUrl.search),
+                request.url
+            )
+        )
     }
 
     if (

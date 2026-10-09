@@ -14,6 +14,7 @@ import { PostHogPageView } from "@/components/posthog-page-view"
 import { PHProvider } from "@/components/posthog-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
+import { navigatePreservingOAuth } from "@/lib/oauth-resume"
 import { organizationsEnabled } from "@/lib/organizations"
 import { preferredAuthViewPaths } from "@/modules/email-code-login"
 
@@ -31,8 +32,12 @@ export function Providers({ children }: { children: ReactNode }) {
                 <RootProvider theme={{ enabled: false }}>
                     <AuthUIProvider
                         authClient={authClient}
-                        navigate={router.push}
-                        replace={router.replace}
+                        navigate={(href) =>
+                            navigatePreservingOAuth(href, router.push)
+                        }
+                        replace={(href) =>
+                            navigatePreservingOAuth(href, router.replace)
+                        }
                         onSessionChange={() => {
                             router.refresh()
                             void authClient.getSession().then(({ data }) => {

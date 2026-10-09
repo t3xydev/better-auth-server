@@ -6,6 +6,7 @@ import { useContext, useState } from "react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { followOAuthContinue } from "@/lib/oauth-resume"
 import { Button } from "./ui/button"
 
 export function Passkey2faButton() {
@@ -24,6 +25,8 @@ export function Passkey2faButton() {
                 )
                 return
             }
+
+            if (followOAuthContinue(response.data)) return
 
             navigate(redirectTo)
         } catch {
