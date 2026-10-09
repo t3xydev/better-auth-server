@@ -41,7 +41,7 @@ Pushes to `main` that are not a Release do not roll Railway. After `railway conf
 
 A public GHCR package pulls with no registry credential. A private package needs a Railway Pro registry credential: a GitHub personal access token with `read:packages`. Dokploy fetches the same tag on each deploy (`pull_policy: always`).
 
-Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)). Optional billing vars (`NEXT_PUBLIC_BILLING_ENABLED`, Stripe / Zoneless keys, price IDs) are `preserve()`d on Railway so Dashboard values survive IaC apply — see [billing](/docs/framework/billing).
+Required env on every target: `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (see [environment-variables.md](/docs/framework/environment-variables)). Optional `BETTER_AUTH_TRUSTED_ORIGINS` and billing vars (`NEXT_PUBLIC_BILLING_ENABLED`, Stripe / Zoneless keys, price IDs) are `preserve()`d on Railway so Dashboard values survive IaC apply — see [billing](/docs/framework/billing).
 
 ### Railway
 

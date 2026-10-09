@@ -30,7 +30,7 @@ These variables must be set for the application to start.
 | Variable | Description |
 |----------|-------------|
 | `BETTER_AUTH_API_KEY` | API key for the Better Auth Dash plugin and Infra email. Required for `/api/auth/admin`. Also used to send mail when SMTP is not configured (Pro+). |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated list of additional trusted origins for CSRF and redirect validation (e.g. `https://app.example.com,https://admin.example.com`). `BETTER_AUTH_URL` is always included. Wildcards like `https://*.example.com` are supported. |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins for CSRF and redirect validation (e.g. `https://app.example.com,https://admin.example.com`). `BETTER_AUTH_URL` is always included. Wildcards like `https://*.example.com` are supported. Does not restrict OIDC / OAuth discovery — `/.well-known/*` always allows `Access-Control-Allow-Origin: *`. |
 
 ---
 

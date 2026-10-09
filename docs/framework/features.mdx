@@ -46,6 +46,8 @@ This app can act as an **authorization server** for your other apps — either b
 | Protected resource metadata | `/.well-known/oauth-protected-resource` |
 | Admin UI for clients | `/admin/clients` — [guide](/docs/framework/admin-panel) |
 
+Those discovery documents are public: they always send `Access-Control-Allow-Origin: *` so any browser OAuth / OIDC client can read them.
+
 **Default scopes:** `openid`, `profile`, `email`, `entitlements`, `offline_access`
 
 Dynamic client registration is off by default. Set `ALLOW_DYNAMIC_CLIENT_REGISTRATION=true` to enable it for authenticated users. Public unauthenticated registration stays off unless `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION=true`.
@@ -87,7 +89,7 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 - Sessions stored in the database with cookie cache (`jwe`, 5-minute max age)
 - Multi-session on the same browser: switch accounts, add an account, and manage device sessions from **Account → Settings** and the user menu
 - **Account → Security** lists every active session (IP / user agent) with revoke, plus a sign-in methods card for linking password, passkey, and Nostr
-- Trusted origins: `BETTER_AUTH_URL` plus optional `BETTER_AUTH_TRUSTED_ORIGINS`
+- Trusted origins: `BETTER_AUTH_URL` plus optional `BETTER_AUTH_TRUSTED_ORIGINS` (CSRF and redirects; discovery stays open)
 - Forwarded IP headers for proxies (`x-forwarded-for`, `x-real-ip`)
 - DBSC toolkit integration for device-bound session credentials
 

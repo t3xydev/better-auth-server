@@ -46,6 +46,7 @@ import {
     passkeyTwoFactorAvailability,
     verifyPendingTwoFactorPasskey
 } from "./passkey-two-factor"
+import { authBaseOrigin, trustedOrigins } from "./trusted-origins"
 
 /** Bridges better-invite `$ERROR_CODES` to Better Auth’s `RawError` shape. See `docs/framework/typescript-better-invite.mdx`. */
 type FixErrorCodes<T> = Omit<T, "$ERROR_CODES"> &
@@ -55,27 +56,17 @@ const ALLOWED_SCOPES = PROVIDER_SCOPES
 
 const cardBillingPlugin = stripeAuthPlugin()
 
-const authOrigin = (
-    process.env.BETTER_AUTH_URL || "http://localhost:3000"
-).replace(/\/$/, "")
+const authOrigin = authBaseOrigin()
 
 const defaultResource = (process.env.OAUTH_AUDIENCE || authOrigin).replace(
     /\/$/,
     ""
 )
 
-const trustedOrigins = [
-    authOrigin,
-    ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
-        .split(",")
-        .map((origin) => origin.trim().replace(/\/$/, ""))
-        .filter(Boolean)
-]
-
 export const auth = betterAuth({
     // baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
     appName: process.env.APPLICATION_NAME || "Better Auth Server",
-    trustedOrigins,
+    trustedOrigins: trustedOrigins(),
     onAPIError: { errorURL: "/auth/error" },
     advanced: {
         ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },
