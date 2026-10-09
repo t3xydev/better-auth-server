@@ -11,7 +11,7 @@
         "lint": "biome check",
         "format": "biome format --write",
         "check-types": "tsc --noEmit",
-        "test": "tsx --test src/lib/*.test.ts src/lib/plugins/*.test.ts src/modules/billing/*.test.ts src/modules/segments/*.test.ts src/modules/observability/*.test.ts",
+        "test": "tsx --test src/lib/*.test.ts src/lib/plugins/*.test.ts src/database/*.test.ts src/modules/billing/*.test.ts src/modules/segments/*.test.ts src/modules/observability/*.test.ts",
         "db:auth": "AUTH_GENERATE=1 NEXT_PUBLIC_ORGANIZATIONS_ENABLED=true auth generate -y --adapter drizzle --dialect postgresql && node scripts/pluralize-auth-schema.mjs",
         "db:gen": "npx drizzle-kit generate",
         "db:migrate": "node scripts/db-migrate.mjs",

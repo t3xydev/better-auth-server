@@ -1,5 +1,10 @@
 export async function register() {
     if (process.env.NEXT_RUNTIME === "nodejs") {
+        const { applyPendingMigrations } = await import(
+            "@/database/apply-pending-migrations.mjs"
+        )
+        await applyPendingMigrations()
+
         const { registerNodeObservability } = await import(
             "@/modules/observability/register-node"
         )
