@@ -59,7 +59,7 @@ Optional: SMTP, branding colors, PostHog, Sentry, tracing, trusted origins — s
 
 ## Database
 
-`pnpm dev` and `pnpm start` apply committed Drizzle migrations on boot (they wait if Postgres is still starting). You do not need a separate `pnpm db:migrate` to run the app.
+The Node.js process applies committed Drizzle migrations on boot — `pnpm dev`, `pnpm start`, and hosts that run `next start` (they wait if Postgres is still starting). You do not need a separate `pnpm db:migrate` to run the app. Set `SKIP_DB_MIGRATE=1` only when you must boot without touching the database.
 
 When you change Better Auth plugins or auth config, **generate** new SQL locally, then boot as usual:
 
@@ -120,10 +120,10 @@ curl -i "http://localhost:3000/api/health?ready=1"
 
 | Script | Purpose |
 |---|---|
-| `pnpm dev` | Apply pending migrations, then Next.js (Turbopack) |
+| `pnpm dev` | Next.js (Turbopack); pending migrations run on Node boot |
 | `pnpm build` / `pnpm start` | Production build; start migrates, then serves |
 | `pnpm db:sync` | Generate schema + SQL (when plugins/config change) |
-| `pnpm db:migrate` | Apply committed migrations only (also runs on `dev` / `start`) |
+| `pnpm db:migrate` | Apply committed migrations only (also runs on every Node boot) |
 | `pnpm lint` / `pnpm format` | Biome check / format |
 | `pnpm check-types` | `tsc --noEmit` |
 

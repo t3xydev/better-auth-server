@@ -12,6 +12,10 @@ const config = {
     },
     transpilePackages: ["dbsc-toolkit", "@dbsc-toolkit/better-auth"],
     skipTrailingSlashRedirect: true,
+    // Serverless / `next start` hosts must ship the SQL next to the process.
+    outputFileTracingIncludes: {
+        "/*": ["./migrations/**"]
+    },
     serverExternalPackages: [
         "posthog-node",
         "@opentelemetry/sdk-trace-node",

@@ -12,7 +12,7 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 | Method | Plugin / config | Notes |
 |---|---|---|
 | Email code | `emailOTP` | Preferred passwordless sign-in at `/auth/sign-in`; password remains available at `/auth/password`. Codes expire after five minutes, are stored hashed, and cannot create unknown accounts |
-| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts) |
+| Email & password | `emailAndPassword` | Sign-up verification via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts). Forgot password at `/auth/forgot-password` offers email code and passkey sign-in; an existing reset link still opens `/auth/reset-password` |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking from **Account → Security** |
@@ -67,6 +67,8 @@ Discovery   {BASE}/.well-known/openid-configuration
 
 JWT issuer defaults to `BETTER_AUTH_URL` (overridable with `OAUTH_ISSUER`). Access tokens are bound to one protected resource — `OAUTH_AUDIENCE` when set, otherwise `BETTER_AUTH_URL`. That identifier is the JWT `aud` claim.
 
+After sign-in on an OAuth authorize request (email code, password, passkey, Nostr, or 2FA), the issuer continues `/oauth2/authorize` and consent instead of sending the user to account settings. A session on `/auth/sign-in` with a signed authorize query resumes the same way.
+
 OAuth protocol errors redirect to `/auth/error`, which shows `error` / `error_description` and a link back to sign-in.
 
 Authorization-code **ID tokens no longer include profile or email claims**. Client apps should read those from UserInfo (`/api/auth/oauth2/userinfo`).
@@ -91,7 +93,7 @@ Authorization-code **ID tokens no longer include profile or email claims**. Clie
 - **Account → Security** lists every active session (IP / user agent) with revoke, plus a sign-in methods card for linking password, passkey, and Nostr
 - Trusted origins: `BETTER_AUTH_URL` plus optional `BETTER_AUTH_TRUSTED_ORIGINS` (CSRF and redirects; discovery stays open)
 - Forwarded IP headers for proxies (`x-forwarded-for`, `x-real-ip`)
-- DBSC toolkit integration for device-bound session credentials
+- DBSC toolkit integration for device-bound session credentials. Binding runs after sign-in and is fail-open, so a DBSC storage error does not 500 email-code or password login
 
 ## Email
 
@@ -112,7 +114,7 @@ Customize without code changes:
 - `APPLICATION_NAME` — header, metadata, PWA, OG title  
 - `NEXT_PUBLIC_PRIMARY_HUE` / `NEXT_PUBLIC_PRIMARY_CHROMA` — theme color  
 - `FAVICON_URL`, `ICON_URL`, `LOGO_URL`, `OPENGRAPH_IMAGE_URL` — assets via CDN  
-- Dark / light mode toggle  
+- Color scheme follows the system setting
 - Optional GitHub header link (`NEXT_PUBLIC_SHOW_GITHUB=true`)
 - In-app docs via Fumadocs at `/docs/framework` (opt-in with `NEXT_PUBLIC_DOCS_ENABLED=true`)
 

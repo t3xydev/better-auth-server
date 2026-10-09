@@ -5,6 +5,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 
 import { AuthFormValidationToast } from "@/components/auth-form-validation-toast"
+import { ForgotPasswordView } from "@/components/forgot-password-view"
 import { InviteOnlySignUpView } from "@/components/invite-only-sign-up-view"
 import { SignInView } from "@/components/sign-in-view"
 import { TwoFactorView } from "@/components/two-factor-view"
@@ -74,6 +75,10 @@ export default async function AuthPage({
                 </AuthFormValidationToast>
             ) : path === "sign-in" ? (
                 <SignInView appName={appName} />
+            ) : path === "forgot-password" ? (
+                <AuthFormValidationToast>
+                    <ForgotPasswordView />
+                </AuthFormValidationToast>
             ) : (
                 <AuthFormValidationToast>
                     <AuthView path={path} />

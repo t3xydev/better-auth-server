@@ -23,7 +23,7 @@ Do not hand-edit generated files (`Dockerfile`, `.dockerignore`, `docker-compose
 | **Dokploy** | `docker-compose.yml` | Same image, `pull_policy: always`; set `dokploy.domain` |
 | **Cloudflare** | `wrangler.jsonc` + `Dockerfile` (default) | **Containers** by default; still builds the Dockerfile |
 
-Railway and Dokploy pull the GHCR image. Cloudflare Containers still builds `Dockerfile`. The image build runs `pnpm build` only. On start, `pnpm start` applies pending Drizzle migrations and then serves Next.js, so `DATABASE_URL` is required at **runtime**, not image-build time.
+Railway and Dokploy pull the GHCR image. Cloudflare Containers still builds `Dockerfile`. The image build runs `pnpm build` only. On start, the Node.js process applies pending Drizzle migrations and then serves Next.js, so `DATABASE_URL` is required at **runtime**, not image-build time.
 
 ### Release image
 
@@ -138,7 +138,7 @@ Start:
 pnpm start
 ```
 
-`pnpm start` (and `pnpm dev`) apply committed migrations before the server listens. Commit schema and migration files from `pnpm db:sync` locally before deploying. Production processes only apply existing SQL — they do not regenerate the schema.
+Pending migrations apply on Node boot, including when the host runs `next start` instead of `pnpm start`. Commit schema and migration files from `pnpm db:sync` locally before deploying. Production processes only apply existing SQL — they do not regenerate the schema.
 
 ---
 
@@ -148,11 +148,11 @@ pnpm start
 |------|--------|---------|
 | 1 | `pnpm build` | Runs `next build` to produce the production app |
 
-On **container** and **classic** targets, pending migrations run when `pnpm start` (or `pnpm dev`) boots. `DATABASE_URL` is required at that point.
+On **container** and **classic** targets, pending migrations run when the Node.js process boots (`pnpm start`, `pnpm dev`, or `next start`). `DATABASE_URL` is required at that point.
 
 ### `pnpm db:migrate`
 
-`node scripts/db-migrate.mjs` — waits for Postgres if needed, then applies SQL from `migrations/`. Also invoked automatically by `pnpm dev` and `pnpm start`. Set `SKIP_DB_MIGRATE=1` only when you must boot without touching the database.
+`node scripts/db-migrate.mjs` — waits for Postgres if needed, then applies SQL from `migrations/`. Next.js also runs the same helper from `src/instrumentation.ts` on Node boot, so a host that starts `next start` (Vercel, a custom Procfile) cannot skip SQL. Concurrent boots take a Postgres advisory lock. Set `SKIP_DB_MIGRATE=1` only when you must boot without touching the database. Edge runtimes and `next build` skip migrate.
 
 ### `pnpm db:sync` (local development only)
 
@@ -172,7 +172,7 @@ pnpm db:auth && pnpm db:gen && pnpm db:migrate
 |--------|---------|---------|
 | `db:auth` | `AUTH_GENERATE=1 auth generate -y --adapter drizzle --dialect postgresql` | Regenerates `auth-schema.ts` from your Better Auth plugins (memory adapter so generate does not need Postgres) |
 | `db:gen` | `npx drizzle-kit generate` | Creates Drizzle migration SQL when the schema changed |
-| `db:migrate` | `node scripts/db-migrate.mjs` | Applies pending migrations (also on `dev` / `start`) |
+| `db:migrate` | `node scripts/db-migrate.mjs` | Applies pending migrations (also on every Node boot) |
 
 After `db:sync`, commit the updated schema and any new files under `migrations/`.
 
@@ -213,10 +213,7 @@ Use the same build and start commands. Ensure `DATABASE_URL` is set in the servi
 
 ### Vercel
 
-Vercel builds do not run against a persistent database by default. `pnpm start` is not the Vercel runtime, so migrations are not automatic there. Options:
-
-1. **Run migrations separately** — e.g. in CI or a one-off job: `pnpm db:migrate`, then deploy with the default `pnpm build`.
-2. **Use a build hook** — if you configure `DATABASE_URL` for the build environment, set the build command to `pnpm db:migrate && pnpm build` in Project Settings → General → Build & Development Settings.
+Set `DATABASE_URL` on the project (runtime). Each Node.js instance applies pending migrations on boot, so you do not need a separate migrate build step. Edge routes skip migrate.
 
 ---
 
@@ -246,7 +243,7 @@ Ensure `.env` includes a valid `DATABASE_URL` pointing at a database you can mig
 |---------|--------------|
 | Build fails on `db:migrate` with connection error | Classic host still running migrate at **build**; use `pnpm build` / `pnpm start` so migrate happens at start |
 | Container exits on start during migrate | `DATABASE_URL` missing at runtime, or Postgres not reachable |
-| App starts but auth tables missing | Migrations never ran |
+| App starts but auth tables missing | Migrations never ran (`SKIP_DB_MIGRATE=1`, missing `DATABASE_URL`, or Edge-only runtime) |
 | Runtime errors about missing columns | New migrations not committed; run `pnpm db:sync` locally, commit, redeploy |
 | Stale Railway/Dokploy/CF config | Edit `deploy/config.ts` and run `pnpm deploy:sync` |
 

@@ -39,7 +39,7 @@ git remote add upstream https://github.com/t3xydev/better-auth-server.git
 git fetch upstream
 ```
 
-If the fork *is* the starter repo, skip `upstream` and treat `origin`’s starter tip as the kit source while product work diverges on `main`.
+If this repo *is* the starter (`origin` is `github.com/t3xydev/better-auth-server`), skip `upstream`. At eject time the kit tip is `origin/main`. After eject, follow uses `origin/dev` (see Follow upstream) because `origin/main` is the product line.
 
 ## Eject (once)
 
@@ -68,7 +68,7 @@ Skip a `git log` when that branch does not exist yet. If either range lists comm
 
 With that yes: save the old tip (`git rev-parse main` / `dev`) and replay those commits **onto `main` after the eject commit** with `git cherry-pick` in order (skip merge commits). That keeps one line. Without that yes, stop. Do not discard the commits and do not merge the old branch in.
 
-If the worktree is dirty, stop. The eject commit is only the identity-rule deletion.
+If the worktree is dirty, stop. The eject commit is only the identity-rule deletion. Do not delete `AGENTS.md` or anything under `.agents/skills/`. Those stay on `main` so any agent can still **sync** / **fetch updates**. Do not add a tool-specific rule to replace the one you delete.
 
 ### 2. Point all three at the kit tip
 
@@ -93,6 +93,8 @@ EOF
 )"
 ```
 
+That `git rm` is the whole eject commit. Do not remove `AGENTS.md` or `.agents/skills/`.
+
 If the user agreed to replay older product commits, cherry-pick them onto this commit now. Still no merge commits.
 
 ### 4. Check the history before pushing or declaring eject done
@@ -102,10 +104,16 @@ test "$(git rev-parse dev)" = "$(git rev-parse kit/main)"
 git merge-base --is-ancestor dev main
 test -z "$(git log --merges --oneline dev..main)"
 test -z "$(git log --oneline kit/main..dev)"
+test ! -e .cursor/rules/project-identity.mdc
+test -e AGENTS.md
+test -e .agents/skills/eject-and-follow/SKILL.md
+git cat-file -e dev:.cursor/rules/project-identity.mdc
+git cat-file -e main:AGENTS.md
+git cat-file -e main:.agents/skills/eject-and-follow/SKILL.md
 git log --oneline dev..main
 ```
 
-`dev..main` is the eject commit, or that commit plus the replay the user asked for. `project-identity.mdc` is gone on `main` and still present on `dev` and `kit/main`.
+`dev..main` is the eject commit, or that commit plus the replay the user asked for. `project-identity.mdc` is gone on `main` and still present on `dev` and `kit/main`. `AGENTS.md` and `.agents/skills/` are still on `main`.
 
 Then:
 
@@ -148,22 +156,77 @@ These mean **follow upstream**: refresh `kit/main` and `dev`, then suggest. Do n
 
 ## Follow upstream
 
-Refresh the kit branch (and starter `dev`), then **suggest** which commits to bring into the product and how each one integrates. Apply only what the user accepts. `main` may deviate from the kit; skipped or adapted commits stay off `main`.
+Do this on every **sync** / **fetch updates**, including a fresh clone that has no local `kit/main` and no `upstream` remote. Those refs are local. They are not on `origin`. Recreate them when they are missing. Do not rewrite a branch that already has unique commits.
 
-Keep `dev` fast-forward only. If `git merge --ff-only kit/main` fails, do not merge. Show `git log --oneline kit/main..dev` and ask. A merge commit on `dev` breaks the clean starter line.
+Refresh the kit branch and starter `dev`, then **suggest** which commits to bring into the product and how each one integrates. Apply only what the user accepts. `main` may deviate from the kit; skipped or adapted commits stay off `main`.
+
+Keep `dev` fast-forward only. If `git merge --ff-only` fails, do not merge. Show the failing range and ask. A merge commit on `dev` breaks the clean starter line. `git reset --hard` only with an explicit user yes.
 
 Hard rules stay in force either way: never push `kit/*`, never rewrite `kit/main` with product commits, never force-push `main` or `dev` unless the user explicitly asks.
 
-```bash
-git fetch upstream
-git checkout kit/main
-git merge --ff-only upstream/main   # prefer ff-only; if it fails, reset --hard upstream/main only with user OK
-# kit/main is no_push — do not git push
+### Resolve the kit source
 
-git checkout dev
-git merge --ff-only kit/main        # keep starter branch aligned
-# if remote was set up: git push origin dev
+```bash
+git remote -v
 ```
+
+| Situation | `KIT` |
+|-----------|--------|
+| `upstream` remote exists | `upstream/main` |
+| No `upstream`, and `origin` is this starter (`github.com/t3xydev/better-auth-server`) | `origin/dev`. After eject, `origin/main` is the product line, not the starter tip. Do not add `upstream`. |
+| No `upstream`, and `origin` is a fork | Add `upstream` once, then `upstream/main` |
+
+Fork (once):
+
+```bash
+git remote add upstream https://github.com/t3xydev/better-auth-server.git
+git fetch upstream
+KIT=upstream/main
+```
+
+This repo is the starter (no separate upstream):
+
+```bash
+git fetch origin
+KIT=origin/dev
+```
+
+### Create missing locals, then fast-forward
+
+Fetch `$KIT` first (`git fetch upstream` or `git fetch origin`).
+
+If `kit/main` does not exist, create it. Do not check it out over a dirty tree:
+
+```bash
+git branch kit/main "$KIT"
+```
+
+If it exists, fast-forward it:
+
+```bash
+git checkout kit/main
+git merge --ff-only "$KIT"
+# kit/main is no_push — do not git push
+```
+
+If `dev` does not exist, use `origin/dev` when that ref is already the starter line; otherwise point `dev` at `kit/main`:
+
+```bash
+git branch dev origin/dev    # when origin/dev exists
+git branch dev kit/main      # otherwise
+```
+
+If `dev` exists, fast-forward only:
+
+```bash
+git checkout dev
+git merge --ff-only kit/main
+# if a remote was set up at eject: git push origin dev
+```
+
+If either `--ff-only` fails, stop. Show `git log --oneline kit/main..dev` or `git log --oneline kit/main..$KIT` and ask. Do not merge.
+
+Then suggest (next section). Do not cherry-pick or merge onto `main` until the user accepts.
 
 ## Suggest commits and integrations
 
@@ -241,20 +304,22 @@ When merging kit → main, use these defaults for a plan the user accepted as pr
 2. Prefer **kit** / **dev** for starter core you have not customized.
 3. For shared composition files (`src/lib/auth.ts`, layouts, deploy config): keep **thin wiring**; move custom logic out (see [`modular-dev`](../modular-dev/SKILL.md)).
 4. Prefer **main** for `.cursor/rules/project-identity.mdc` — keep it deleted after eject.
-5. Re-run `pnpm deploy:sync` after kit changes touch `deploy/config.ts`.
+5. Keep `AGENTS.md` and `.agents/skills/` **present** on `main`. If a kit merge drops them, restore them unless the user asked to drop follow.
+6. Re-run `pnpm deploy:sync` after kit changes touch `deploy/config.ts`.
 
 ## What “ejected” means here
 
 Eject is **branch separation** with a shared starter commit: **`dev` and `kit/main` match**, **`main` is that commit plus a linear product history**, and starterkit-only agent identity is dropped on `main` only. Local **`kit/main`** stays no_push. Full hard-fork (drop remotes / never sync) only if the user asks explicitly.
 
-On eject, remove `.cursor/rules/project-identity.mdc` from **`main`** only. Leave it on **`dev`** and **`kit/main`**.
+On eject, remove `.cursor/rules/project-identity.mdc` from **`main`** only. Leave it on **`dev`** and **`kit/main`**. Leave `AGENTS.md` and `.agents/skills/` on **`main`** so follow still runs after eject, including on a fresh clone. Do not add a replacement rule under `.cursor/rules/` or any other tool directory.
 
 ## Checklist
 
 ```
 Eject / follow:
 - [ ] Asked whether remote is available
-- [ ] upstream remote present when following (or origin is the kit)
+- [ ] Kit source resolved: upstream/main, or origin/dev when origin is the starter repo
+- [ ] Missing upstream (fork) or kit/main was created before suggesting; no unique commits rewritten
 - [ ] kit/main tracks starter locally (no_push — never on origin)
 - [ ] main is the product branch
 - [ ] dev is the starter branch, same commit as kit/main
@@ -263,12 +328,13 @@ Eject / follow:
 - [ ] unique commits on the old main/dev were shown before any rewrite
 - [ ] If remote: pushed main (fast-forward), set as default, then pushed dev
 - [ ] .cursor/rules/project-identity.mdc removed on main (kept on dev)
+- [ ] AGENTS.md and .agents/skills/ still on main (no tool-specific follow rule added)
 - [ ] product commits are not on kit/main or dev
 - [ ] Follow: inspected main..kit/main and suggested commits + integrations before touching main
 - [ ] User accepted, trimmed, or replaced the plan; skips and adaptations were kept
 - [ ] Previously skipped commits were not re-applied
 - [ ] sync uses kit/sync/* then merge to main; each sync commit is one accepted topic
-- [ ] kit→main conflicts: keep project-identity.mdc deleted on main
+- [ ] kit→main conflicts: keep project-identity.mdc deleted on main; keep AGENTS.md and .agents/skills/ present
 - [ ] never push kit/main or kit/sync/*
 - [ ] no force-push of main/dev unless user requested
 ```

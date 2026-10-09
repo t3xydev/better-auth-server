@@ -23,6 +23,8 @@ These variables must be set for the application to start.
 | `BETTER_AUTH_SECRET` | Random secret used by Better Auth to sign sessions and tokens. Generate one with `openssl rand -hex 32`. |
 | `DATABASE_URL` | PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/dbname`). Used by Drizzle ORM and Better Auth. |
 
+Set `SKIP_DB_MIGRATE=1` only to boot without applying Drizzle SQL (schema generate / tests). Otherwise every Node.js process start (`next dev`, `next start`, `pnpm start`) applies pending migrations.
+
 ---
 
 ## Better Auth
