@@ -46,6 +46,8 @@ This app can act as an **authorization server** for your other apps — either b
 | Protected resource metadata | `/.well-known/oauth-protected-resource` |
 | Admin UI for clients | `/admin/clients` — [guide](/docs/framework/admin-panel) |
 
+Those discovery documents are served with `Access-Control-Allow-Origin: *` so browser OAuth / OIDC clients can read them cross-origin.
+
 **Default scopes:** `openid`, `profile`, `email`, `entitlements`, `offline_access`
 
 Dynamic client registration is off by default. Set `ALLOW_DYNAMIC_CLIENT_REGISTRATION=true` to enable it for authenticated users. Public unauthenticated registration stays off unless `ALLOW_UNAUTHENTICATED_CLIENT_REGISTRATION=true`.

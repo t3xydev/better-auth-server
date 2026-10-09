@@ -1,5 +1,24 @@
 const PUBLIC_CLIENT_AUTH_METHOD = "none"
 
+export const discoveryCorsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
+} as const
+
+export function discoveryOptionsResponse() {
+    return new Response(null, {
+        status: 204,
+        headers: discoveryCorsHeaders
+    })
+}
+
+function withDiscoveryCors(headers: Headers): Headers {
+    const next = new Headers(headers)
+    next.set("Access-Control-Allow-Origin", "*")
+    next.set("Access-Control-Allow-Methods", "GET, OPTIONS")
+    return next
+}
+
 export async function advertisePublicClientTokenAuth(
     response: Response
 ): Promise<Response> {
@@ -27,7 +46,7 @@ export async function advertisePublicClientTokenAuth(
         {
             status: response.status,
             statusText: response.statusText,
-            headers: response.headers
+            headers: withDiscoveryCors(response.headers)
         }
     )
 }
