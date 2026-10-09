@@ -12,7 +12,7 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 | Method | Plugin / config | Notes |
 |---|---|---|
 | Email code | `emailOTP` | Preferred passwordless sign-in at `/auth/sign-in`; password remains available at `/auth/password`. Codes expire after five minutes, are stored hashed, and cannot create unknown accounts |
-| Email & password | `emailAndPassword` | Sign-up verification + password reset via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts) |
+| Email & password | `emailAndPassword` | Sign-up verification via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts). Forgot password at `/auth/forgot-password` offers email code and passkey sign-in; an existing reset link still opens `/auth/reset-password` |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking from **Account → Security** |
