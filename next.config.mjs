@@ -17,6 +17,7 @@ const config = {
         "/*": ["./migrations/**"]
     },
     serverExternalPackages: [
+        "better-auth-studio",
         "posthog-node",
         "@opentelemetry/sdk-trace-node",
         "@opentelemetry/sdk-trace-base",
