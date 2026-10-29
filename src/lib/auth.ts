@@ -39,6 +39,7 @@ import {
     allowUnauthenticatedClientRegistration
 } from "./dynamic-client-registration"
 import { sendEmail } from "./email"
+import { resolveEmailCodeSignInAllowed } from "./email-code-account"
 import { INVITE_TOKEN_COOKIE, inviteOnly } from "./invite-only"
 import { isUsableInviteToken } from "./invite-only-server"
 import { organizationsEnabled } from "./organizations"
@@ -118,8 +119,32 @@ export const auth = betterAuth({
             })
         }
     },
+    databaseHooks: {
+        user: {
+            create: {
+                before: async (user) => {
+                    const name =
+                        typeof user.name === "string" ? user.name.trim() : ""
+                    if (name) return
+                    const local = user.email.split("@")[0]?.trim()
+                    if (!local) return
+                    return { data: { name: local } }
+                }
+            }
+        }
+    },
     hooks: {
         before: createAuthMiddleware(async (ctx) => {
+            if (ctx.path === "/sign-in/email-otp") {
+                const email =
+                    typeof ctx.body?.email === "string" ? ctx.body.email : ""
+                if (!email) return
+                if (await resolveEmailCodeSignInAllowed(ctx, email)) return
+                throw new APIError("BAD_REQUEST", {
+                    message: "Invalid OTP",
+                    code: "INVALID_OTP"
+                })
+            }
             if (!inviteOnly || ctx.path !== "/sign-up/email") return
             const inviteCookie =
                 ctx.context.createAuthCookie(INVITE_TOKEN_COOKIE)
@@ -203,8 +228,8 @@ export const auth = betterAuth({
             // Custom UI activation flow — see https://www.better-invite.com/docs/examples
             defaultCustomInviteUrl: `${authOrigin}/invite/activate/{token}`,
             defaultRedirectAfterUpgrade: "/auth/invited",
-            defaultRedirectToSignIn: "/auth/sign-in",
-            defaultRedirectToSignUp: "/auth/sign-up",
+            defaultRedirectToSignIn: "/auth",
+            defaultRedirectToSignUp: "/auth/signup",
             defaultMaxUses: 1,
             defaultSenderResponse: "url",
             // Keep welcome copy simple unless a private invite opts in
@@ -280,7 +305,7 @@ export const auth = betterAuth({
             }
         }),
         oauthProvider({
-            loginPage: "/auth/sign-in",
+            loginPage: "/auth",
             consentPage: "/consent",
             scopes: [...ALLOWED_SCOPES],
             resources: [defaultResource],

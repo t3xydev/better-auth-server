@@ -34,7 +34,7 @@ export default async function AuthErrorPage({
                 </div>
                 <Link
                     className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 font-medium text-primary-foreground text-sm"
-                    href="/auth/sign-in"
+                    href="/auth"
                 >
                     Back to sign in
                 </Link>

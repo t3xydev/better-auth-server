@@ -88,9 +88,6 @@ export default async function InviteWelcomePage({
         invite.isPrivate &&
         !invitedEmails.includes(sessionEmail!)
 
-    const signInHref = `/auth/sign-in?redirectTo=${encodeURIComponent(`/invite/activate/${token}`)}`
-    const signUpHref = `/auth/sign-up?redirectTo=${encodeURIComponent(`/invite/activate/${token}`)}`
-
     return (
         <main className="container flex grow flex-col items-center justify-center gap-4 self-center p-4 md:p-6">
             <Card className="w-full max-w-md">
@@ -187,11 +184,11 @@ export default async function InviteWelcomePage({
                         </p>
                     ) : !session?.user ? (
                         <p className="text-sm text-muted-foreground">
-                            {invite.newAccount
-                                ? inviteOnly
-                                    ? "Create an account with this invite, or sign in if you already have one."
-                                    : "Create an account or sign in to accept this invite."
-                                : "Sign in to accept this invite and continue."}
+                            {invite.newAccount === false
+                                ? "Sign in to accept this invite and continue."
+                                : inviteOnly
+                                  ? "Sign in to accept this invite. Don't have an account? New accounts need this invite."
+                                  : "Sign in to accept this invite. Don't have an account? We'll create one when you sign in."}
                         </p>
                     ) : (
                         <p className="text-sm text-muted-foreground">
@@ -217,20 +214,7 @@ export default async function InviteWelcomePage({
                             <Link href="/auth/sign-out">Sign out</Link>
                         </Button>
                     ) : !session?.user ? (
-                        <>
-                            <Button asChild className="w-full">
-                                <Link href={signInHref}>Continue to sign in</Link>
-                            </Button>
-                            {invite.newAccount !== false ? (
-                                inviteOnly ? (
-                                    <InviteSignUpButton token={token} />
-                                ) : (
-                                    <Button asChild className="w-full" variant="outline">
-                                        <Link href={signUpHref}>Create an account</Link>
-                                    </Button>
-                                )
-                            ) : null}
-                        </>
+                        <InviteSignUpButton token={token} />
                     ) : (
                         <>
                             <ActivateInviteClient

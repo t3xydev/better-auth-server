@@ -53,6 +53,7 @@ export function Providers({ children }: { children: ReactNode }) {
                         Link={Link}
                         redirectTo="/account/settings"
                         emailOTP
+                        signUp={false}
                         viewPaths={preferredAuthViewPaths}
                         twoFactor={["totp"]}
                         passkey

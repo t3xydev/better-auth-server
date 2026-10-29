@@ -16,7 +16,7 @@ export default async function InvitedPage() {
     const session = await auth.api.getSession({ headers: await headers() })
 
     if (!session?.user) {
-        redirect("/auth/sign-in?redirectTo=/auth/invited")
+        redirect("/auth?redirectTo=/auth/invited")
     }
 
     return (

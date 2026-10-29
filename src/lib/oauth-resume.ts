@@ -10,6 +10,7 @@ const AUTH_FLOW_PATHS = [
     "/auth/sign-in",
     "/auth/password",
     "/auth/sign-up",
+    "/auth/signup",
     "/auth/two-factor",
     "/auth/recover-account",
     "/auth/forgot-password",
@@ -41,6 +42,8 @@ function pathnameOf(href: string): string {
 
 export function isAuthFlowNavigation(href: string): boolean {
     const pathname = pathnameOf(href)
+    // Exact only. A prefix match would treat `/auth/error` as part of the flow.
+    if (pathname === "/auth") return true
     return AUTH_FLOW_PATHS.some(
         (path) => pathname === path || pathname.startsWith(`${path}/`)
     )
@@ -82,6 +85,24 @@ export function loggedInAuthRouteRedirect(
     fallback = DEFAULT_POST_LOGIN_PATH
 ): string {
     return oauthAuthorizeResumePath(search) ?? fallback
+}
+
+/**
+ * Older auth URLs land on the current pages and keep the query
+ * (`redirectTo`, signed OAuth params, and anything else).
+ */
+export function legacyAuthRedirect(
+    pathname: string,
+    search: string
+): string | null {
+    const query = search ? (search.startsWith("?") ? search : `?${search}`) : ""
+    if (pathname === "/auth/sign-in" || pathname.startsWith("/auth/sign-in/")) {
+        return `/auth${query}`
+    }
+    if (pathname === "/auth/sign-up" || pathname.startsWith("/auth/sign-up/")) {
+        return `/auth/signup${query}`
+    }
+    return null
 }
 
 /**

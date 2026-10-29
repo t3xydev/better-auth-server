@@ -4,6 +4,7 @@ import { test } from "node:test"
 import {
     followOAuthContinue,
     isAuthFlowNavigation,
+    legacyAuthRedirect,
     loggedInAuthRouteRedirect,
     oauthAuthorizeResumePath,
     oauthAwareDestination,
@@ -52,9 +53,26 @@ test("logged-in auth routes resume OIDC instead of account settings", () => {
 test("auth-flow navigations are not treated as post-login redirects", () => {
     assert.equal(isAuthFlowNavigation("/auth/two-factor?client_id=app"), true)
     assert.equal(isAuthFlowNavigation("/auth/password"), true)
+    assert.equal(isAuthFlowNavigation("/auth?redirectTo=/admin"), true)
+    assert.equal(isAuthFlowNavigation("/auth/sign-up?redirectTo=/admin"), true)
+    assert.equal(isAuthFlowNavigation("/auth/signup?redirectTo=/admin"), true)
+    assert.equal(isAuthFlowNavigation("/auth/error"), false)
     assert.equal(isAuthFlowNavigation("/consent"), true)
     assert.equal(isAuthFlowNavigation("/account/settings"), false)
     assert.equal(isAuthFlowNavigation("/admin"), false)
+})
+
+test("legacy auth URLs redirect and keep the query", () => {
+    const search = `${signedSearch}&redirectTo=%2Fadmin`
+    assert.equal(legacyAuthRedirect("/auth/sign-in", search), `/auth${search}`)
+    assert.equal(legacyAuthRedirect("/auth/sign-in", ""), "/auth")
+    assert.equal(
+        legacyAuthRedirect("/auth/sign-up", search),
+        `/auth/signup${search}`
+    )
+    assert.equal(legacyAuthRedirect("/auth/sign-up", ""), "/auth/signup")
+    assert.equal(legacyAuthRedirect("/auth", search), null)
+    assert.equal(legacyAuthRedirect("/auth/signup", search), null)
 })
 
 test("oauthAwareDestination resumes authorize for post-login paths", () => {

@@ -106,8 +106,8 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). You land on sign-in.
 
-> First admin: sign up, then `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`  
-> With `NEXT_PUBLIC_INVITE_ONLY=true`, the first user can still sign up. Later sign-ups need an invite — [invitations](docs/framework/invitations.mdx).  
+> First admin: sign in with an email code, then `UPDATE users SET role = 'admin' WHERE email = 'you@example.com';`  
+> With `NEXT_PUBLIC_INVITE_ONLY=true`, the first user can still sign in. Later accounts need an invite — [invitations](docs/framework/invitations.mdx).  
 > Admin UI: [admin panel](docs/framework/admin-panel.mdx).
 
 ## Deploy

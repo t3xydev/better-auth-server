@@ -1,14 +1,22 @@
 import { emailOTP } from "better-auth/plugins"
-
 import { sendEmail } from "@/lib/email"
+import { resolveEmailCodeSignInAllowed } from "@/lib/email-code-account"
 
 const CODE_EXPIRATION_MINUTES = "5"
 
 export function emailCodeLogin() {
     return emailOTP({
-        disableSignUp: true,
+        disableSignUp: false,
         storeOTP: "hashed",
-        async sendVerificationOTP({ email, otp, type }) {
+        async sendVerificationOTP({ email, otp, type }, ctx) {
+            if (
+                type === "sign-in" &&
+                ctx &&
+                !(await resolveEmailCodeSignInAllowed(ctx, email))
+            ) {
+                return
+            }
+
             const common = {
                 to: email
             }

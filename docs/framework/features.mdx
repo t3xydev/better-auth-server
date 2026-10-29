@@ -11,8 +11,8 @@ Configuration lives primarily in [`src/lib/auth.ts`](https://github.com/t3xydev/
 
 | Method | Plugin / config | Notes |
 |---|---|---|
-| Email code | `emailOTP` | Preferred passwordless sign-in at `/auth/sign-in`; password remains available at `/auth/password`. Codes expire after five minutes, are stored hashed, and cannot create unknown accounts |
-| Email & password | `emailAndPassword` | Sign-up verification via [email](https://github.com/t3xydev/better-auth-server/blob/main/src/lib/email.ts). Forgot password at `/auth/forgot-password` offers email code and passkey sign-in; an existing reset link still opens `/auth/reset-password` |
+| Email code | `emailOTP` | Sign-in at `/auth`. The same code signs in an existing account or creates a new one. **Sign up** opens `/auth/signup` with the same form and signup wording. `/auth/sign-in` redirects to `/auth`, and `/auth/sign-up` redirects to `/auth/signup`; both keep the query string. Password sign-in stays at `/auth/password`. Codes expire after five minutes and are stored hashed. Invite-only servers still refuse a new account without a usable invite; the first user can bootstrap |
+| Email & password | `emailAndPassword` | Password sign-in at `/auth/password`. A password can be added later from Account → Security. Forgot password at `/auth/forgot-password` offers email code and passkey sign-in; an existing reset link still opens `/auth/reset-password` |
 | Passkeys | `@better-auth/passkey` | WebAuthn; RP ID derived from `BETTER_AUTH_URL`; an enrolled passkey can complete a pending 2FA challenge for the same account |
 | Two-factor (TOTP) | `twoFactor` | Challenge UI at `/auth/two-factor`; a valid code repairs legacy enabled accounts with an unverified TOTP record |
 | Nostr | `better-auth-nostr` + custom link plugin | Sign-in and account key linking from **Account → Security** |
@@ -67,7 +67,7 @@ Discovery   {BASE}/.well-known/openid-configuration
 
 JWT issuer defaults to `BETTER_AUTH_URL` (overridable with `OAUTH_ISSUER`). Access tokens are bound to one protected resource — `OAUTH_AUDIENCE` when set, otherwise `BETTER_AUTH_URL`. That identifier is the JWT `aud` claim.
 
-After sign-in on an OAuth authorize request (email code, password, passkey, Nostr, or 2FA), the issuer continues `/oauth2/authorize` and consent instead of sending the user to account settings. A session on `/auth/sign-in` with a signed authorize query resumes the same way.
+After sign-in on an OAuth authorize request (email code, password, passkey, Nostr, or 2FA), the issuer continues `/oauth2/authorize` and consent instead of sending the user to account settings. A session on `/auth` with a signed authorize query resumes the same way.
 
 OAuth protocol errors redirect to `/auth/error`, which shows `error` / `error_description` and a link back to sign-in.
 

@@ -15,9 +15,9 @@ The admin panel lets administrators register OAuth clients, manage users, assign
 
 ### 2. Create an admin user
 
-**Local development** — use Better Auth DevTools (floating panel in `next dev`) to create an Admin test user, or sign up and promote via SQL below.
+**Local development** — use Better Auth DevTools (floating panel in `next dev`) to create an Admin test user, or sign in with an email code and promote via SQL below.
 
-**Production / first real admin** — sign up normally, then promote in PostgreSQL:
+**Production / first real admin** — sign in with an email code (a new email creates the account), then promote in PostgreSQL:
 
 ```sql
 UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
@@ -96,7 +96,7 @@ Click **Delete Client** from the row dropdown or the detail page's Danger Zone. 
 
 The admin panel is protected at two levels:
 
-1. **Middleware** (`src/middleware.ts`) -- unauthenticated requests to `/admin/*` are redirected to `/auth/sign-in`.
+1. **Middleware** (`src/middleware.ts`) -- unauthenticated requests to `/admin/*` are redirected to `/auth`.
 2. **Layout guard** (`src/app/admin/layout.tsx`) -- authenticated users without the `admin` role are redirected to `/`.
 3. **Server actions** (`src/lib/actions/admin-*.ts`) -- every action independently verifies `session.user.role === "admin"` before executing.
 

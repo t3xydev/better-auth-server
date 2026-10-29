@@ -1,9 +1,17 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
-import { loggedInAuthRouteRedirect } from "@/lib/oauth-resume"
+import {
+    legacyAuthRedirect,
+    loggedInAuthRouteRedirect
+} from "@/lib/oauth-resume"
 
-const authRoutes = ["/auth/sign-in", "/auth/password", "/auth/sign-up"]
+const authRoutes = [
+    "/auth/sign-in",
+    "/auth/password",
+    "/auth/sign-up",
+    "/auth/signup"
+]
 const protectedPrefixes = ["/account", "/admin"]
 
 export async function middleware(request: NextRequest) {
@@ -12,7 +20,8 @@ export async function middleware(request: NextRequest) {
 
     if (
         sessionCookie &&
-        authRoutes.some((route) => pathname.startsWith(route))
+        (pathname === "/auth" ||
+            authRoutes.some((route) => pathname.startsWith(route)))
     ) {
         return NextResponse.redirect(
             new URL(
@@ -20,6 +29,11 @@ export async function middleware(request: NextRequest) {
                 request.url
             )
         )
+    }
+
+    const legacyPath = legacyAuthRedirect(pathname, request.nextUrl.search)
+    if (legacyPath) {
+        return NextResponse.redirect(new URL(legacyPath, request.url))
     }
 
     if (
@@ -30,7 +44,7 @@ export async function middleware(request: NextRequest) {
     ) {
         const redirectTo = pathname + request.nextUrl.search
         return NextResponse.redirect(
-            new URL(`/auth/sign-in?redirectTo=${redirectTo}`, request.url)
+            new URL(`/auth?redirectTo=${redirectTo}`, request.url)
         )
     }
 
@@ -39,9 +53,11 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
+        "/auth",
         "/auth/sign-in",
         "/auth/password",
         "/auth/sign-up",
+        "/auth/signup",
         "/account",
         "/account/:path*",
         "/admin/:path*"

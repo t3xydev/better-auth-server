@@ -62,10 +62,11 @@ export function PostHogIdentify() {
             }
 
             if (isNewIdentity) {
-                const event =
-                    window.location.pathname === "/auth/sign-up"
-                        ? "user_signed_up"
-                        : "user_signed_in"
+                const createdAt = new Date(session.user.createdAt).getTime()
+                const justCreated =
+                    Number.isFinite(createdAt) &&
+                    Date.now() - createdAt < 2 * 60 * 1000
+                const event = justCreated ? "user_signed_up" : "user_signed_in"
                 posthog.capture(event, {
                     userId: personId,
                     email: session.user.email

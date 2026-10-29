@@ -10,7 +10,7 @@ export function baseOptions(): BaseLayoutProps {
         links: [
             {
                 text: "Sign in",
-                url: "/auth/sign-in",
+                url: "/auth",
                 active: "nested-url"
             },
             {

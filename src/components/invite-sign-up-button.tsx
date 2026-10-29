@@ -1,46 +1,48 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
 
-/** Sets the better-invite cookie, then sends the user to sign-up. */
+/** Sets the better-invite cookie, then sends the user to sign in. */
 export function InviteSignUpButton({ token }: { token: string }) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const signInPath = `/auth?redirectTo=${encodeURIComponent(`/invite/activate/${token}`)}`
 
-    async function prepareSignUp() {
+    async function prepareSignIn() {
         setLoading(true)
         setError(null)
 
-        const { data, error: activateError } = await authClient.invite.activate({
+        const { error: activateError } = await authClient.invite.activate({
             token,
-            callbackURL: "/auth/sign-up",
+            callbackURL: "/auth"
         })
 
         if (activateError) {
-            setError(activateError.message ?? "Failed to prepare invite for sign-up.")
+            setError(
+                activateError.message ?? "Failed to prepare invite for sign-in."
+            )
             setLoading(false)
             return
         }
 
-        router.push(data?.redirectTo ?? "/auth/sign-up")
+        router.push(signInPath)
     }
 
     return (
         <div className="w-full space-y-2">
             <Button
                 className="w-full"
-                variant="outline"
                 disabled={loading}
-                onClick={prepareSignUp}
+                onClick={prepareSignIn}
             >
-                {loading ? "Preparing…" : "Create an account"}
+                {loading ? "Preparing…" : "Continue to sign in"}
             </Button>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? <p className="text-destructive text-sm">{error}</p> : null}
         </div>
     )
 }
